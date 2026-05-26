@@ -1,0 +1,78 @@
+{
+  "comment": "Career-Ops SaaS Token Cost Optimization & Tiered Model Routing Configuration",
+  "routing": {
+    "quickScore": {
+      "model": "gemini-2.5-flash",
+      "description": "Ultra-low cost structured scoring for initial A-F grading (A-F fit assessment). Done automatically in batches or on scan clicks.",
+      "temperature": 0.2,
+      "maxOutputTokens": 1024,
+      "useStructuredOutput": true
+    },
+    "deepEvaluation": {
+      "model": "gemini-2.5-pro",
+      "description": "Thorough gap analysis, company research, and target-level breakdown.",
+      "temperature": 0.4,
+      "maxOutputTokens": 4096,
+      "useStructuredOutput": false
+    },
+    "resumeTailoring": {
+      "model": "claude-3-5-sonnet",
+      "description": "Premium CV adjustments to ensure professional tone matching and keyword optimization.",
+      "temperature": 0.5,
+      "maxOutputTokens": 4096,
+      "useStructuredOutput": false
+    },
+    "storyMatching": {
+      "model": "gemini-2.5-flash",
+      "description": "Matching past accomplishments from the Story Bank to target JDs.",
+      "temperature": 0.3,
+      "maxOutputTokens": 2048,
+      "useStructuredOutput": true
+    }
+  },
+  "cachingPolicy": {
+    "enabled": true,
+    "provider": "google-gemini",
+    "cachingThresholdTokens": 32768,
+    "ttlSeconds": 1800,
+    "cachedPayloads": [
+      {
+        "key": "userMasterResume",
+        "source": "public.resumes.cv_markdown",
+        "description": "Master professional experience resume text."
+      },
+      {
+        "key": "userStoryBank",
+        "source": "public.story_bank.star_stories",
+        "description": "STAR+R structured narrative bank to avoid repetitive prompt inflation."
+      },
+      {
+        "key": "userProfileNarrative",
+        "source": "public.profiles.location_policy + public.profiles.salary_target",
+        "description": "User preferences, deal-breakers, and target roles."
+      }
+    ]
+  },
+  "tierQuotaPolicy": {
+    "free": {
+      "maxMonthlyQuickScores": 10,
+      "maxMonthlyResumeTailorings": 1,
+      "enablePortalScanning": false,
+      "priority": "low"
+    },
+    "pro": {
+      "maxMonthlyQuickScores": 200,
+      "maxMonthlyResumeTailorings": 10,
+      "enablePortalScanning": true,
+      "maxScanningPortals": 20,
+      "priority": "medium"
+    },
+    "elite": {
+      "maxMonthlyQuickScores": 1000,
+      "maxMonthlyResumeTailorings": 99999,
+      "enablePortalScanning": true,
+      "maxScanningPortals": 100,
+      "priority": "high"
+    }
+  }
+}

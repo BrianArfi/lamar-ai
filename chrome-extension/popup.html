@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --border: #334155;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    body {
+      width: 320px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      margin: 0;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-top: 0;
+      margin-bottom: 4px;
+      background: linear-gradient(135deg, #60a5fa, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .job-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .company {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    button {
+      width: 100%;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    button:hover {
+      background-color: var(--primary-hover);
+    }
+    button:disabled {
+      background-color: var(--border);
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+    .result-container {
+      display: none;
+      margin-top: 12px;
+    }
+    .score-badge {
+      display: inline-block;
+      font-size: 24px;
+      font-weight: 800;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background-color: #1e1b4b;
+      border: 1px solid #312e81;
+      color: #818cf8;
+      text-align: center;
+      margin-right: 12px;
+    }
+    .fit-meta {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .fit-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+    .fit-desc {
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    .status-msg {
+      font-size: 12px;
+      margin-top: 8px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <h2>Career-Ops AI Matcher</h2>
+  <div class="subtitle">Extract JDs & pre-evaluate matching scores instantly.</div>
+
+  <div class="card" id="jobCard">
+    <div class="job-title" id="lblTitle">Detecting Active Page...</div>
+    <div class="company" id="lblCompany">Please navigate to a supported job portal.</div>
+  </div>
+
+  <button id="btnEvaluate" disabled>Analyze Match & Customize CV</button>
+
+  <div class="status-msg" id="statusMsg"></div>
+
+  <div class="result-container" id="resultContainer">
+    <div class="card">
+      <div class="fit-meta">
+        <div class="score-badge" id="lblScore">A-</div>
+        <div>
+          <div class="fit-label">Match Assessment</div>
+          <div style="font-size: 14px; font-weight: 600;" id="lblSummary">Strong Fit (4.3/5)</div>
+        </div>
+      </div>
+      <div class="fit-desc" id="lblGap">
+        Key Gap: Lacks direct Kubernetes infrastructure ownership. Resume adjustments suggested.
+      </div>
+      <button style="background-color: var(--success);" id="btnSaaS">Open in SaaS Dashboard</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
