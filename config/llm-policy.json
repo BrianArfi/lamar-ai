@@ -2,28 +2,28 @@
   "comment": "Career-Ops SaaS Token Cost Optimization & Tiered Model Routing Configuration",
   "routing": {
     "quickScore": {
-      "model": "gemini-2.5-flash",
+      "model": "gpt-4o-mini",
       "description": "Ultra-low cost structured scoring for initial A-F grading (A-F fit assessment). Done automatically in batches or on scan clicks.",
       "temperature": 0.2,
       "maxOutputTokens": 1024,
       "useStructuredOutput": true
     },
     "deepEvaluation": {
-      "model": "gemini-2.5-pro",
+      "model": "gpt-4o",
       "description": "Thorough gap analysis, company research, and target-level breakdown.",
       "temperature": 0.4,
       "maxOutputTokens": 4096,
       "useStructuredOutput": false
     },
     "resumeTailoring": {
-      "model": "claude-3-5-sonnet",
+      "model": "gpt-4o",
       "description": "Premium CV adjustments to ensure professional tone matching and keyword optimization.",
       "temperature": 0.5,
       "maxOutputTokens": 4096,
       "useStructuredOutput": false
     },
     "storyMatching": {
-      "model": "gemini-2.5-flash",
+      "model": "gpt-4o-mini",
       "description": "Matching past accomplishments from the Story Bank to target JDs.",
       "temperature": 0.3,
       "maxOutputTokens": 2048,
@@ -32,7 +32,7 @@
   },
   "cachingPolicy": {
     "enabled": true,
-    "provider": "google-gemini",
+    "provider": "openai",
     "cachingThresholdTokens": 32768,
     "ttlSeconds": 1800,
     "cachedPayloads": [

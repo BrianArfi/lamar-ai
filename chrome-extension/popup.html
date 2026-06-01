@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <style>
     :root {
-      --bg-dark: #0f172a;
-      --bg-card: #1e293b;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --primary: #3b82f6;
-      --primary-hover: #2563eb;
-      --border: #334155;
+      --bg-dark: #09090b;
+      --bg-card: #18181b;
+      --text-main: #f4f4f5;
+      --text-muted: #71717a;
+      --primary: #8b5cf6;
+      --primary-hover: #7c3aed;
+      --border: #27272a;
       --success: #10b981;
       --warning: #f59e0b;
       --danger: #ef4444;
@@ -29,7 +29,7 @@
       font-weight: 700;
       margin-top: 0;
       margin-bottom: 4px;
-      background: linear-gradient(135deg, #60a5fa, #3b82f6);
+      background: linear-gradient(135deg, #c084fc, #8b5cf6);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -84,9 +84,9 @@
       font-weight: 800;
       padding: 6px 12px;
       border-radius: 6px;
-      background-color: #1e1b4b;
-      border: 1px solid #312e81;
-      color: #818cf8;
+      background-color: #2e1065;
+      border: 1px solid #4c1d95;
+      color: #ddd6fe;
       text-align: center;
       margin-right: 12px;
     }
@@ -113,11 +113,35 @@
       text-align: center;
       color: var(--text-muted);
     }
+    .badge {
+      font-size: 10px;
+      font-weight: 900;
+      background-color: #5b21b6;
+      border: 1px solid #7c3aed;
+      color: #ddd6fe;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      display: inline-block;
+    }
   </style>
 </head>
 <body>
   <h2>Career-Ops AI Matcher</h2>
   <div class="subtitle">Extract JDs & pre-evaluate matching scores instantly.</div>
+
+  <div class="card" id="customPortalCard" style="display: none; background-color: #2e1065; border-color: #4c1d95; padding: 12px; margin-bottom: 12px;">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+      <span class="badge">Custom Portal</span>
+      <span style="font-size: 11px; font-weight: bold; color: #ddd6fe;">Universal Scraper Active</span>
+    </div>
+    <div style="font-size: 11px; color: #a1a1aa; line-height: 1.4;">
+      This site has not been officially optimized yet. You can still scan it, or request official optimization below:
+    </div>
+    <div style="margin-top: 8px; text-align: right;">
+      <button id="btnRequestOpt" style="width: auto; font-size: 10px; padding: 4px 10px; background-color: var(--primary); border-radius: 4px; display: inline-block;">Request Official Optimization</button>
+    </div>
+  </div>
 
   <div class="card" id="jobCard">
     <div class="job-title" id="lblTitle">Detecting Active Page...</div>
