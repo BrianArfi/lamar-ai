@@ -33,6 +33,32 @@ export default function LoginPage() {
     }
   }, []);
 
+  // Auth Session Auto-Redirect check on mount
+  useEffect(() => {
+    async function checkExistingAuth() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.user) {
+            toast.info('Reconnecting Active Session...', {
+              description: `Welcome back, ${data.user.fullName}!`,
+              duration: 3000
+            });
+            if (data.user.onboardingComplete) {
+              router.push('/dashboard');
+            } else {
+              router.push('/onboarding');
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Auth redirect check failed:", e);
+      }
+    }
+    checkExistingAuth();
+  }, [router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim() || (!isLogin && !fullName.trim())) {

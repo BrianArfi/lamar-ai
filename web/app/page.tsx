@@ -43,6 +43,9 @@ export default function PremiumLandingPage() {
 
   // Stats Countdown FOMO
   const [slotsLeft, setSlotsLeft] = useState(14);
+
+  // Active Authenticated Session State
+  const [user, setUser] = useState<any>(null);
   
   useEffect(() => {
     // Dynamically slowly decrease slots left to add micro-FOMO
@@ -50,6 +53,23 @@ export default function PremiumLandingPage() {
       setSlotsLeft(prev => (prev > 3 ? prev - 1 : prev));
     }, 45000);
     return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.user) {
+            setUser(data.user);
+          }
+        }
+      } catch (e) {
+        console.error("Auth check failed on landing page:", e);
+      }
+    }
+    checkAuth();
   }, []);
 
   // Background Canvas particle animation loop
@@ -254,19 +274,34 @@ export default function PremiumLandingPage() {
         </div>
         
         <div className="flex items-center gap-4">
-          <Link href="/login" className="text-xs font-semibold text-zinc-450 hover:text-zinc-200 transition-colors">
-            Sign In
-          </Link>
-          <Link href="/login?register=true">
-            <Button 
-              variant="primary"
-              size="sm"
-              className="shadow-lg shadow-violet-500/10 bg-violet-600 hover:bg-violet-500 text-zinc-50 border-none px-4 rounded-xl flex items-center gap-1.5"
-              rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
-            >
-              Get Started Free
-            </Button>
-          </Link>
+          {user ? (
+            <Link href="/dashboard">
+              <Button 
+                variant="primary"
+                size="sm"
+                className="shadow-lg shadow-violet-500/10 bg-violet-600 hover:bg-violet-500 text-zinc-50 border-none px-4 rounded-xl flex items-center gap-1.5 font-bold"
+                rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+              >
+                Go to Workspace
+              </Button>
+            </Link>
+          ) : (
+            <>
+              <Link href="/login" className="text-xs font-semibold text-zinc-450 hover:text-zinc-200 transition-colors">
+                Sign In
+              </Link>
+              <Link href="/login?register=true">
+                <Button 
+                  variant="primary"
+                  size="sm"
+                  className="shadow-lg shadow-violet-500/10 bg-violet-600 hover:bg-violet-500 text-zinc-50 border-none px-4 rounded-xl flex items-center gap-1.5 font-semibold"
+                  rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+                >
+                  Get Started Free
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
       </header>
 
@@ -295,21 +330,36 @@ export default function PremiumLandingPage() {
         {/* Dynamic CTA Layer */}
         <div className="flex flex-col items-center gap-3 mt-4">
           <div className="flex flex-col sm:flex-row items-center gap-4">
-            <Link href="/login?register=true">
-              <Button 
-                variant="primary" 
-                size="lg" 
-                className="px-8 py-4 shadow-xl shadow-violet-500/20 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-zinc-50 border-none rounded-xl scale-105"
-                rightIcon={<ArrowRight className="w-4 h-4" />}
-              >
-                Access Engine Sandbox
-              </Button>
-            </Link>
-            <Link href="/login">
-              <Button variant="secondary" size="lg" className="px-8 py-4 border-zinc-800 hover:bg-zinc-900/60 text-zinc-350 rounded-xl">
-                Open Dashboard
-              </Button>
-            </Link>
+            {user ? (
+              <Link href="/dashboard">
+                <Button 
+                  variant="primary" 
+                  size="lg" 
+                  className="px-10 py-4 shadow-xl shadow-violet-500/20 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-zinc-50 border-none rounded-xl scale-105 font-bold flex items-center gap-2"
+                  rightIcon={<ArrowRight className="w-4 h-4" />}
+                >
+                  Go to Dashboard Workspace
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/login?register=true">
+                  <Button 
+                    variant="primary" 
+                    size="lg" 
+                    className="px-8 py-4 shadow-xl shadow-violet-500/20 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-zinc-50 border-none rounded-xl scale-105"
+                    rightIcon={<ArrowRight className="w-4 h-4" />}
+                  >
+                    Access Engine Sandbox
+                  </Button>
+                </Link>
+                <Link href="/login">
+                  <Button variant="secondary" size="lg" className="px-8 py-4 border-zinc-800 hover:bg-zinc-900/60 text-zinc-350 rounded-xl">
+                    Open Dashboard
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
           
           {/* Real-time cohort slots availability indicator */}
@@ -630,9 +680,9 @@ export default function PremiumLandingPage() {
                 <p className="text-[9.5px] text-zinc-550 leading-relaxed max-w-xs mx-auto">
                   By cutting search duration from 22 weeks to 8.8 weeks, Career-Ops saves you ${Math.floor(careerOpsSavedIncome).toLocaleString()} in potential lost wages.
                 </p>
-                <Link href="/login?register=true" className="block w-full">
+                <Link href={user ? "/dashboard" : "/login?register=true"} className="block w-full">
                   <Button variant="primary" size="sm" className="w-full py-2.5 font-bold shadow-md shadow-violet-500/5">
-                    Recover My Lost Income
+                    {user ? "Go to Workspace Dashboard" : "Recover My Lost Income"}
                   </Button>
                 </Link>
               </div>
@@ -720,14 +770,14 @@ export default function PremiumLandingPage() {
         </p>
 
         <div className="flex flex-col items-center gap-3 mt-2">
-          <Link href="/login?register=true" className="scale-105">
+          <Link href={user ? "/dashboard" : "/login?register=true"} className="scale-105">
             <Button 
               variant="primary" 
               size="lg" 
-              className="px-10 py-3.5 shadow-xl shadow-violet-500/20 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-zinc-50 border-none rounded-xl"
+              className="px-10 py-3.5 shadow-xl shadow-violet-500/20 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-zinc-50 border-none rounded-xl font-bold"
               rightIcon={<ArrowUpRight className="w-4.5 h-4.5" />}
             >
-              Start Free Audit Journey
+              {user ? "Enter My Workspace Dashboard" : "Start Free Audit Journey"}
             </Button>
           </Link>
           <span className="text-[10px] font-semibold text-zinc-650">No credit card required. Free tier includes 3 AI matches per day.</span>
