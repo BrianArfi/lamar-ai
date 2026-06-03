@@ -19,6 +19,7 @@ export async function GET() {
         id: true,
         fullName: true,
         email: true,
+        tier: true,
         targetRoles: true,
         onboardingComplete: true
       }
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
     }
 
     const userId = sessionCookie.value;
-    const { targetRoles, onboardingComplete } = await request.json();
+    const { targetRoles, onboardingComplete, tier } = await request.json();
 
     const updateData: any = {};
     if (targetRoles !== undefined) {
@@ -55,6 +56,9 @@ export async function POST(request: Request) {
     }
     if (onboardingComplete !== undefined) {
       updateData.onboardingComplete = onboardingComplete;
+    }
+    if (tier !== undefined) {
+      updateData.tier = tier;
     }
 
     const updatedUser = await prisma.user.update({
@@ -64,6 +68,7 @@ export async function POST(request: Request) {
         id: true,
         fullName: true,
         email: true,
+        tier: true,
         targetRoles: true,
         onboardingComplete: true
       }

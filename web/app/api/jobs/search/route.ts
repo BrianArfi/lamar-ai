@@ -19,11 +19,18 @@ export async function POST(request: Request) {
     }
 
     const userId = sessionCookie.value;
-    const { query, isFreeTier = true } = await request.json();
+    const { query } = await request.json();
 
     if (!query) {
       return NextResponse.json({ success: false, error: 'Search query is required.' }, { status: 400 });
     }
+
+    // Look up user's tier from database to prevent spoofing
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { tier: true }
+    });
+    const isFreeTier = user ? user.tier !== 'pro' : true;
 
     // 1. Fetch and Cache jobs from prominent boards
     const rawJobs = await scrapeIndonesianJobs(query);

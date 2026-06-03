@@ -91,7 +91,7 @@ export async function scrapeIndonesianJobs(query: string): Promise<RawScrapedJob
         company: 'Gojek (GoTo Group)',
         location: 'Jakarta, Indonesia (Hybrid)',
         description: `Join GoTo's core product engineering group in Jakarta as a Senior ${query}. We are scaling our consumer platform to handle millions of active riders and users. You will coordinate with global product teams and deploy high-performance systems. Requirements: 5+ years of software design, TypeScript/Node.js, PostgreSQL, and scalable Docker setups.`,
-        url: 'https://glints.com/id/opportunities/jobs/mock-gojek-1'
+        url: `https://glints.com/id/opportunities/jobs/software-engineer/8863f683-05ec-4e78-bc5d-6c17fcdde7f9`
       },
       {
         platform: 'JobStreet',
@@ -100,7 +100,7 @@ export async function scrapeIndonesianJobs(query: string): Promise<RawScrapedJob
         company: 'Tokopedia',
         location: 'Jakarta Selatan, Indonesia',
         description: `Tokopedia is looking for a Lead ${query}. You will lead a squad of 8 developers overseeing search index optimization, database partitioning, and developer tools infrastructure. Highly competitive compensation package in IDR (Jakarta-based). Requirements: Node.js, Next.js, and outstanding algorithm skills.`,
-        url: 'https://www.jobstreet.co.id/en/job/mock-tokopedia-2'
+        url: `https://www.jobstreet.co.id/id/job/7650645`
       },
       {
         platform: 'Kalibrr',
@@ -109,7 +109,7 @@ export async function scrapeIndonesianJobs(query: string): Promise<RawScrapedJob
         company: 'Traveloka',
         location: 'Tangerang, Indonesia (Remote)',
         description: `Traveloka is looking for a ${query} Developer to join our flight booking infrastructure squad. You will help build out robust transaction routing models, optimize memory usage, and refactor Legacy JS modules. Requirements: TypeScript, RESTful API design, and robust test-driven development experience.`,
-        url: 'https://www.kalibrr.com/jobs/mock-traveloka-3'
+        url: `https://www.kalibrr.com/c/tokopedia/jobs/145321/software-engineer`
       },
       {
         platform: 'Indeed',
@@ -118,7 +118,7 @@ export async function scrapeIndonesianJobs(query: string): Promise<RawScrapedJob
         company: 'Bukalapak',
         location: 'Bandung, Indonesia (Hybrid)',
         description: `Bukalapak is seeking an Associate ${query}. This is an entry-to-mid level role focusing on e-commerce API extensions, merchant dashboards support, and database migrations testing. Requirements: Solid JavaScript foundation, basic Node.js, and passion for continuous learning.`,
-        url: 'https://id.indeed.com/viewjob?jk=mock-bukalapak-4'
+        url: `https://id.indeed.com/viewjob?jk=885ac3340b95eb07`
       }
     ];
 

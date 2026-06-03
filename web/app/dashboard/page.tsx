@@ -642,8 +642,28 @@ export default function TrackerDashboard() {
                   </p>
                 </div>
               </div>
-              <Button variant="primary" className="shrink-0 w-full md:w-auto">
-                Upgrade to Pro Pipeline
+              <Button 
+                variant="primary" 
+                className="shrink-0 w-full md:w-auto bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-450 hover:to-yellow-450 text-black border-none font-bold animate-pulse"
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/auth/me', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ tier: 'pro' })
+                    });
+                    if (res.ok) {
+                      toast.success('Account Upgraded to Pro! 👑', {
+                        description: 'Unlimited scans and custom tailoring unlocked.',
+                      });
+                      setTimeout(() => window.location.reload(), 1500);
+                    }
+                  } catch (e) {
+                    console.error("Failed to upgrade tier:", e);
+                  }
+                }}
+              >
+                Simulated Upgrade to Pro
               </Button>
             </Card>
           )}

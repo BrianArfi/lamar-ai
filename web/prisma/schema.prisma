@@ -12,6 +12,7 @@ model User {
   fullName           String
   email              String         @unique
   passwordHash       String?
+  tier               String         @default("free") // "free" | "pro"
   locationPolicy     String         @default("{\"always_allow\": [], \"allow\": [], \"block\": []}")
   salaryTarget       String         @default("{\"min\": 0, \"max\": 0, \"currency\": \"USD\"}")
   targetRoles        String?        // JSON array of target role strings or plain text list
