@@ -1,200 +1,320 @@
 /**
  * Career-Ops Chrome Extension Popup Controller
- * Coordinates scraping active tabs and sending payloads to SaaS backend.
+ * Manages Sync Token Settings, Job Page Scraping, Form Field Detection, and AI Form Auto-filling.
  */
 
+// UI Element Mappings
+const settingsPanel = document.getElementById('settingsPanel');
+const toggleSettings = document.getElementById('toggleSettings');
+const syncTokenInput = document.getElementById('syncToken');
+const baseUrlInput = document.getElementById('baseUrl');
+const btnSaveSettings = document.getElementById('btnSaveSettings');
+
+const tabScrape = document.getElementById('tabScrape');
+const tabAutofill = document.getElementById('tabAutofill');
+const scrapeTabContent = document.getElementById('scrapeTabContent');
+const autofillTabContent = document.getElementById('autofillTabContent');
+
+// Scrape Elements
 const lblTitle = document.getElementById('lblTitle');
 const lblCompany = document.getElementById('lblCompany');
-const btnEvaluate = document.getElementById('btnEvaluate');
-const statusMsg = document.getElementById('statusMsg');
-const resultContainer = document.getElementById('resultContainer');
-const lblScore = document.getElementById('lblScore');
-const lblSummary = document.getElementById('lblSummary');
-const lblGap = document.getElementById('lblGap');
-const btnSaaS = document.getElementById('btnSaaS');
+const lblDescPreview = document.getElementById('lblDescPreview');
+const btnScrapeAndTrack = document.getElementById('btnScrapeAndTrack');
 const customPortalCard = document.getElementById('customPortalCard');
-const btnRequestOpt = document.getElementById('btnRequestOpt');
+
+// Autofill Elements
+const cvSelect = document.getElementById('cvSelect');
+const btnDetectFields = document.getElementById('btnDetectFields');
+const fieldsListContainer = document.getElementById('fieldsListContainer');
+const btnAutofill = document.getElementById('btnAutofill');
+
+const statusMsg = document.getElementById('statusMsg');
 
 let scrapedJobData = null;
+let detectedFields = [];
+let savedSyncToken = '';
+let savedBaseUrl = 'http://localhost:3000';
 
-// Helper to report failures to backend
-function reportScraperFailure(url, failureType, errorMessage) {
-  fetch('http://localhost:3001/api/scraper/report-failure', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      url: url,
-      source: 'CHROME_EXTENSION',
-      failureType: failureType,
-      errorMessage: errorMessage
-    })
-  }).then(res => res.json())
-    .then(data => console.log("Reported failure to SaaS backend:", data))
-    .catch(err => console.error("Failed to report failure to SaaS backend:", err));
-}
-
-// Initialize popup by querying active tab
-chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-  const activeTab = tabs[0];
-  if (!activeTab || !activeTab.url) return;
-
-  const url = activeTab.url;
-  const isSupported = url.includes('linkedin.com') ||
-                      url.includes('greenhouse.io') ||
-                      url.includes('lever.co') ||
-                      url.includes('ashbyhq.com') ||
-                      url.includes('workday.com');
-
-  if (isSupported) {
-    if (customPortalCard) customPortalCard.style.display = 'none';
-    lblTitle.innerText = "Job Listing Detected";
-    lblCompany.innerText = "Click below to scan and evaluate.";
-    btnEvaluate.disabled = false;
-    
-    // Trigger silent scrape
-    chrome.tabs.sendMessage(activeTab.id, { action: 'scrapeJob' }, (response) => {
-      if (response && response.success) {
-        scrapedJobData = response.data;
-        lblTitle.innerText = scrapedJobData.title || "Job Listing Detected";
-        lblCompany.innerText = scrapedJobData.company || "Unknown Company";
-
-        // Check if description is too short (Selector failed)
-        if (!scrapedJobData.description || scrapedJobData.description.length < 300) {
-          reportScraperFailure(url, "SELECTOR_MISSING", "Chrome Extension scraped less than 300 characters of description.");
-        }
-      } else {
-        statusMsg.innerText = "Failed to extract DOM automatically. Try clicking analyze.";
-        reportScraperFailure(url, "SELECTOR_MISSING", response ? response.error : "Failed to extract DOM automatically.");
-      }
-    });
-  } else {
-    // Unsupported / Custom Portal Universal Flow
-    if (customPortalCard) customPortalCard.style.display = 'block';
-    lblTitle.innerText = "Custom Job Portal Detected";
-    lblCompany.innerText = "Attempting universal scanning...";
-    btnEvaluate.disabled = false;
-
-    // Trigger universal scrape
-    chrome.tabs.sendMessage(activeTab.id, { action: 'scrapeJob' }, (response) => {
-      if (response && response.success) {
-        scrapedJobData = response.data;
-        lblTitle.innerText = scrapedJobData.title || "Universal Job Listing";
-        lblCompany.innerText = scrapedJobData.company || "Custom Portal";
-      } else {
-        statusMsg.innerText = "Failed to extract DOM automatically. Try clicking analyze.";
-      }
-    });
-
-    // Request official optimization listener
-    if (btnRequestOpt) {
-      btnRequestOpt.addEventListener('click', () => {
-        btnRequestOpt.disabled = true;
-        btnRequestOpt.innerText = "Sending Request...";
-        
-        fetch('http://localhost:3001/api/scraper/report-failure', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            url: url,
-            source: 'CHROME_EXTENSION',
-            failureType: 'OPTIMIZATION_REQUEST',
-            errorMessage: 'User requested official scraper optimization for this host.'
-          })
-        }).then(res => res.json())
-          .then(data => {
-            console.log("Optimization requested:", data);
-            btnRequestOpt.innerText = "✓ Request Sent!";
-            btnRequestOpt.style.backgroundColor = "#10b981"; // Success green
-          })
-          .catch(err => {
-            console.error("Failed to request optimization:", err);
-            btnRequestOpt.disabled = false;
-            btnRequestOpt.innerText = "Retry Request";
-          });
-      });
+// Initialize Popup
+document.addEventListener('DOMContentLoaded', async () => {
+  // 1. Load configuration settings
+  chrome.storage.sync.get(['syncToken', 'baseUrl'], (items) => {
+    if (items.syncToken) {
+      savedSyncToken = items.syncToken;
+      syncTokenInput.value = savedSyncToken;
     }
-  }
-});
+    if (items.baseUrl) {
+      savedBaseUrl = items.baseUrl;
+      baseUrlInput.value = savedBaseUrl;
+    }
 
-// Function to execute evaluation with scrapedJobData
-function executeEvaluation(data) {
-  btnEvaluate.disabled = true;
-  btnEvaluate.innerText = "Analyzing via SaaS API...";
-  statusMsg.innerText = "Sending job details to SaaS Matchmaker...";
+    updateStatusText();
 
-  setTimeout(() => {
-    statusMsg.innerText = "Analysis Complete!";
-    btnEvaluate.style.display = 'none';
-    resultContainer.style.display = 'block';
+    // 2. Fetch CVs if token is available
+    if (savedSyncToken) {
+      fetchUserResumes();
+    }
+  });
 
-    const text = (data.description || '').toLowerCase();
-    if (text.includes('kubernetes') || text.includes('infra') || text.includes('docker')) {
-      lblScore.innerText = "B+";
-      lblScore.style.color = "#f59e0b";
-      lblScore.style.borderColor = "#78350f";
-      lblScore.style.backgroundColor = "#451a03";
-      lblSummary.innerText = "Good Fit (3.9/5)";
-      lblGap.innerText = "Gap: Significant infrastructure requirements (Kubernetes/Docker) detected. Custom tailoring is recommended to emphasize container orchestration experience.";
+  // 3. Setup settings panel toggle
+  toggleSettings.addEventListener('click', () => {
+    if (settingsPanel.style.display === 'block') {
+      settingsPanel.style.display = 'none';
     } else {
-      lblScore.innerText = "A";
-      lblScore.style.color = "#10b981";
-      lblScore.style.borderColor = "#064e3b";
-      lblScore.style.backgroundColor = "#022c22";
-      lblSummary.innerText = "Strong Match (4.6/5)";
-      lblGap.innerText = "Excellent Match! Skills and past achievements fully cover requirements. Tailoring should emphasize your core Applied AI expertise.";
+      settingsPanel.style.display = 'block';
     }
-  }, 1500);
-}
+  });
 
-// Handle analysis trigger
-btnEvaluate.addEventListener('click', async () => {
-  if (scrapedJobData) {
-    executeEvaluation(scrapedJobData);
-    return;
-  }
+  // 4. Save settings
+  btnSaveSettings.addEventListener('click', () => {
+    const token = syncTokenInput.value.trim();
+    const url = baseUrlInput.value.trim().replace(/\/$/, ''); // strip trailing slash
 
-  // Fallback: If scrapedJobData is null, try sending scrape message AGAIN right now!
-  statusMsg.innerText = "Retrying DOM scan...";
-  statusMsg.style.color = ""; // Reset color
-  
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    const activeTab = tabs[0];
-    if (!activeTab || !activeTab.id) {
-      statusMsg.innerText = "No active tab found.";
-      return;
-    }
-
-    chrome.tabs.sendMessage(activeTab.id, { action: 'scrapeJob' }, (response) => {
-      if (chrome.runtime.lastError || !response || !response.success) {
-        statusMsg.style.color = "#ef4444"; // Highlight in red for high visibility
-        statusMsg.innerText = "Error: Please REFRESH (F5) your page first so the extension can connect, then reopen this extension!";
-        console.error("Scrape on click failed:", chrome.runtime.lastError);
-        reportScraperFailure(activeTab.url, "NETWORK_ERROR", chrome.runtime.lastError ? chrome.runtime.lastError.message : "Failed to communicate with tab content script.");
-      } else {
-        scrapedJobData = response.data;
-        lblTitle.innerText = scrapedJobData.title || "Job Listing Detected";
-        lblCompany.innerText = scrapedJobData.company || "Unknown Company";
-        statusMsg.style.color = ""; // Reset color
-        statusMsg.innerText = "Scrape successful! Starting evaluation...";
-        executeEvaluation(scrapedJobData);
+    chrome.storage.sync.set({ syncToken: token, baseUrl: url }, () => {
+      savedSyncToken = token;
+      savedBaseUrl = url;
+      settingsPanel.style.display = 'none';
+      toastMsg('Settings saved successfully!', 'success');
+      updateStatusText();
+      
+      if (savedSyncToken) {
+        fetchUserResumes();
       }
     });
   });
-});
 
-btnSaaS.addEventListener('click', () => {
-  // Local development fallback: open the local web app with prefilled query parameters from the scraper!
-  const baseUrl = 'http://localhost:3001/';
-  
-  if (scrapedJobData) {
+  // 5. Tabs Toggle Logic
+  tabScrape.addEventListener('click', () => {
+    tabScrape.classList.add('active');
+    tabAutofill.classList.remove('active');
+    scrapeTabContent.style.display = 'block';
+    autofillTabContent.style.display = 'none';
+  });
+
+  tabAutofill.addEventListener('click', () => {
+    tabAutofill.classList.add('active');
+    tabScrape.classList.remove('active');
+    autofillTabContent.style.display = 'block';
+    scrapeTabContent.style.display = 'none';
+  });
+
+  // 6. Scan/Scrape Active Tab Job Details
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const activeTab = tabs[0];
+    if (!activeTab || !activeTab.url) {
+      lblTitle.innerText = "No Active Tab";
+      lblCompany.innerText = "Open a job portal to scrape listings.";
+      return;
+    }
+
+    const url = activeTab.url;
+    // Show/hide helper card for general pages
+    const isStandardPortal = url.includes('linkedin.com') ||
+                             url.includes('glints.com') ||
+                             url.includes('kalibrr.com') ||
+                             url.includes('jobstreet.co.id') ||
+                             url.includes('jobstreet.com') ||
+                             url.includes('indeed.com') ||
+                             url.includes('indeed.co.id') ||
+                             url.includes('techinasia.com') ||
+                             url.includes('greenhouse.io') ||
+                             url.includes('lever.co') ||
+                             url.includes('workday.com');
+
+    if (!isStandardPortal) {
+      customPortalCard.style.display = 'block';
+    } else {
+      customPortalCard.style.display = 'none';
+    }
+
+    lblTitle.innerText = "Scanning page elements...";
+    lblCompany.innerText = "Reading DOM details...";
+
+    chrome.tabs.sendMessage(activeTab.id, { action: 'scrapeJob' }, (response) => {
+      if (chrome.runtime.lastError || !response || !response.success) {
+        console.warn("Direct messaging content script failed, retrying page inject...", chrome.runtime.lastError);
+        lblTitle.innerText = "Page connection pending";
+        lblCompany.innerText = "Please refresh the page to load co-pilot listeners.";
+        toastMsg("Refeshing the job page may be required to enable scanning.", "warning");
+      } else {
+        scrapedJobData = response.data;
+        lblTitle.innerText = scrapedJobData.title || "Job Listing Scanned";
+        lblCompany.innerText = scrapedJobData.company || "Company Unknown";
+        
+        let desc = scrapedJobData.description || '';
+        if (desc.length > 150) {
+          desc = desc.substring(0, 150) + '...';
+        }
+        lblDescPreview.innerText = desc || "No description text identified.";
+        btnScrapeAndTrack.disabled = false;
+      }
+    });
+  });
+
+  // 7. Redirect Scraped Job details to SaaS CV Studio
+  btnScrapeAndTrack.addEventListener('click', () => {
+    if (!scrapedJobData) return;
+    
     const params = new URLSearchParams({
       url: scrapedJobData.url || '',
       title: scrapedJobData.title || '',
       company: scrapedJobData.company || '',
       description: scrapedJobData.description || ''
     });
-    chrome.tabs.create({ url: `${baseUrl}?${params.toString()}` });
-  } else {
-    chrome.tabs.create({ url: baseUrl });
-  }
+
+    const redirectUrl = `${savedBaseUrl}/dashboard/cv?${params.toString()}`;
+    chrome.tabs.create({ url: redirectUrl });
+  });
+
+  // 8. Detect Form Fields Client-side
+  btnDetectFields.addEventListener('click', () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const activeTab = tabs[0];
+      if (!activeTab || !activeTab.id) return;
+
+      toastMsg("Scanning form inputs...", "info");
+      chrome.tabs.sendMessage(activeTab.id, { action: 'detectFields' }, (response) => {
+        if (chrome.runtime.lastError || !response || !response.success) {
+          toastMsg("Failed to scan page. Ensure you are on a form page and refresh.", "danger");
+        } else {
+          detectedFields = response.fields || [];
+          if (detectedFields.length === 0) {
+            toastMsg("No input fields identified on this page.", "warning");
+            fieldsListContainer.style.display = 'none';
+            btnAutofill.disabled = true;
+          } else {
+            toastMsg(`Identified ${detectedFields.length} input field(s).`, "success");
+            fieldsListContainer.style.display = 'block';
+            fieldsListContainer.innerHTML = detectedFields.map(field => `
+              <div class="field-item">
+                <span class="field-label">${field.label}</span>
+                <span class="field-type">${field.type}</span>
+              </div>
+            `).join('');
+            btnAutofill.disabled = false;
+          }
+        }
+      });
+    });
+  });
+
+  // 9. Call Auto-filler Endpoint and Write values
+  btnAutofill.addEventListener('click', async () => {
+    if (!savedSyncToken) {
+      toastMsg("Please save your Sync Token key in co-pilot settings first.", "danger");
+      return;
+    }
+    if (detectedFields.length === 0) {
+      toastMsg("Detect fields on the active form page first.", "warning");
+      return;
+    }
+
+    const selectedCv = cvSelect.value;
+    if (!selectedCv) {
+      toastMsg("Please select a profile resume from the list.", "warning");
+      return;
+    }
+
+    btnAutofill.disabled = true;
+    btnAutofill.innerText = "🤖 Writing tailored answers...";
+    toastMsg("Co-pilot is analyzing and drafting values...", "info");
+
+    try {
+      const fillRes = await fetch(`${savedBaseUrl}/api/autofill-form`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${savedSyncToken}`
+        },
+        body: JSON.stringify({
+          fields: detectedFields,
+          cvId: selectedCv
+        })
+      });
+
+      const json = await fillRes.json();
+      if (!json.success) {
+        throw new Error(json.error || "Form filler service failed.");
+      }
+
+      // Send mapping coordinates back to content script to fill the form in user viewport
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const activeTab = tabs[0];
+        chrome.tabs.sendMessage(activeTab.id, { action: 'fillFields', data: json.data }, (response) => {
+          btnAutofill.disabled = false;
+          btnAutofill.innerText = "🤖 Auto-fill Application";
+
+          if (chrome.runtime.lastError || !response || !response.success) {
+            toastMsg("Failed to write values back to inputs.", "danger");
+          } else {
+            const count = response.result ? response.result.filledCount : 0;
+            toastMsg(`Success! Populated ${count} form input field(s). 🎉`, "success");
+          }
+        });
+      });
+
+    } catch (err) {
+      btnAutofill.disabled = false;
+      btnAutofill.innerText = "🤖 Auto-fill Application";
+      toastMsg(err.message || "Failed to auto-fill form.", "danger");
+    }
+  });
 });
+
+// Helper: Fetch user's master and tailored CV options from backend
+async function fetchUserResumes() {
+  cvSelect.innerHTML = `<option value="">-- Fetching resumes from account... --</option>`;
+  try {
+    const res = await fetch(`${savedBaseUrl}/api/resumes?list=true`, {
+      headers: {
+        'Authorization': `Bearer ${savedSyncToken}`
+      }
+    });
+
+    const json = await res.json();
+    if (!json.success) {
+      throw new Error(json.error || "Failed to fetch resumes.");
+    }
+
+    const list = json.list || [];
+    if (list.length === 0) {
+      cvSelect.innerHTML = `<option value="">No CVs identified on your Career-Ops dashboard.</option>`;
+    } else {
+      cvSelect.innerHTML = list.map(item => `
+        <option value="${item.id}">${item.name}</option>
+      `).join('');
+    }
+  } catch (err) {
+    console.error("Resume load failed:", err);
+    cvSelect.innerHTML = `<option value="">Error connecting to co-pilot. Check URL & Token.</option>`;
+    toastMsg("Failed to fetch resume options from SaaS backend.", "danger");
+  }
+}
+
+// Helper: Update status co-pilot connection indicator text
+function updateStatusText() {
+  if (!savedSyncToken) {
+    statusMsg.innerText = "Settings incomplete. Paste Sync Token in settings to link dashboard.";
+    statusMsg.className = "status-msg error-msg";
+  } else {
+    statusMsg.innerText = `Connected successfully with SaaS co-pilot.`;
+    statusMsg.className = "status-msg";
+  }
+}
+
+// Helper: Show transient popup toast notices
+function toastMsg(msg, type = 'info') {
+  statusMsg.innerText = msg;
+  if (type === 'danger') {
+    statusMsg.className = "status-msg error-msg";
+  } else if (type === 'success') {
+    statusMsg.className = "status-msg";
+    statusMsg.style.color = "#10b981"; // Success green
+  } else if (type === 'warning') {
+    statusMsg.className = "status-msg";
+    statusMsg.style.color = "#f59e0b"; // Warning orange
+  } else {
+    statusMsg.className = "status-msg";
+    statusMsg.style.color = ""; // Muted fallback
+  }
+}

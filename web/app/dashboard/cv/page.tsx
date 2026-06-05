@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Save, 
   Sparkles, 
@@ -17,7 +18,8 @@ import {
   Wand2,
   Sparkle,
   ExternalLink,
-  Globe
+  Copy,
+  ChevronRight
 } from 'lucide-react';
 import { toast } from '../../components/ui/toast';
 import { Button } from '../../components/ui/button';
@@ -38,7 +40,13 @@ interface Application {
   tailoredAtsScore?: number | null;
 }
 
+interface SuggestedAddition {
+  gap: string;
+  recommendation: string;
+}
+
 export default function CvTailoringStudio() {
+  const router = useRouter();
   const [cvMarkdown, setCvMarkdown] = useState('');
   const [skills, setSkills] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,6 +66,9 @@ export default function CvTailoringStudio() {
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [tailoringCv, setTailoringCv] = useState(false);
   const [dropdownHighlight, setDropdownHighlight] = useState(false);
+
+  // Suggested Additions (gaps analysis) from AI Tailoring
+  const [suggestedAdditions, setSuggestedAdditions] = useState<SuggestedAddition[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -93,7 +104,6 @@ export default function CvTailoringStudio() {
     formData.append('file', file);
 
     try {
-      // 1. Extract raw text from document using parse-cv API
       const parseRes = await fetch('/api/parse-cv', {
         method: 'POST',
         body: formData
@@ -104,7 +114,6 @@ export default function CvTailoringStudio() {
       const cvText = parseJson.text;
       if (!cvText) throw new Error('Extracted text is empty.');
 
-      // 2. Reformat the raw text to Markdown CV using our AI reformat API
       const reformatRes = await fetch('/api/resumes/reformat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -113,11 +122,9 @@ export default function CvTailoringStudio() {
       const reformatJson = await reformatRes.json();
       if (!reformatJson.success) throw new Error(reformatJson.error || 'Failed to reformat CV with AI.');
 
-      // 3. Update editor state
       setCvMarkdown(reformatJson.cvMarkdown);
       setSkills(reformatJson.skills || []);
 
-      // 4. Save automatically to the database
       const saveRes = await fetch('/api/resumes', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -218,6 +225,54 @@ export default function CvTailoringStudio() {
     }
   };
 
+  // 1. Chrome Extension url params intake logic
+  useEffect(() => {
+    async function handleExtensionIntake() {
+      if (typeof window === 'undefined') return;
+      const params = new URLSearchParams(window.location.search);
+      const extUrl = params.get('url');
+      const extTitle = params.get('title');
+      const extCompany = params.get('company');
+      const extDesc = params.get('description');
+
+      if (extUrl && extTitle && extCompany && extDesc) {
+        try {
+          setLoading(true);
+          toast.info('Importing job listing from Chrome Extension...');
+          
+          const res = await fetch('/api/applications', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              companyName: extCompany,
+              roleTitle: extTitle,
+              status: 'Evaluated',
+              fitScore: 4.0, // Default baseline compatibility
+              jobUrl: extUrl,
+              notes: extDesc
+            })
+          });
+          const json = await res.json();
+          
+          if (json.success && json.data) {
+            toast.success(`Tracked "${extTitle}" at "${extCompany}" successfully! 🎉`);
+            // Redirect to CV Tailoring directly selecting this new application and clean query params
+            router.replace(`/dashboard/cv?appId=${json.data.id}`);
+            // Force fetch layout applications again
+            fetchResume();
+          } else {
+            throw new Error(json.error || 'Failed to auto-create job application.');
+          }
+        } catch (e: any) {
+          toast.error('Extension import failed', { description: e.message });
+        } finally {
+          setLoading(false);
+        }
+      }
+    }
+    handleExtensionIntake();
+  }, []);
+
   useEffect(() => {
     fetchResume();
   }, []);
@@ -235,6 +290,7 @@ export default function CvTailoringStudio() {
 
   // Synchronize editor content when selectedAppId changes
   useEffect(() => {
+    setSuggestedAdditions([]); // Clear gaps on app change
     if (!selectedAppId || selectedAppId === 'custom') {
       if (masterCv) {
         setCvMarkdown(masterCv.cvMarkdown);
@@ -264,18 +320,18 @@ export default function CvTailoringStudio() {
     }
   }, [selectedAppId, applications, masterCv]);
 
-  // Debounced ATS live check on markdown content modification
+  // Debounced ATS live check
   useEffect(() => {
     if (loading || !cvMarkdown.trim()) return;
     
     const timer = setTimeout(() => {
       runAtsCheck(cvMarkdown);
-    }, 600); // 600ms debounce to prevent API storming
+    }, 600);
     
     return () => clearTimeout(timer);
   }, [cvMarkdown, loading]);
 
-  // Save changes to SQLite
+  // Save master CV changes
   const handleSaveCv = async () => {
     try {
       setSaving(true);
@@ -462,6 +518,7 @@ export default function CvTailoringStudio() {
 
       // Update local states
       setCvMarkdown(json.cvMarkdown);
+      setSuggestedAdditions(json.suggestedAdditions || []);
       
       // Run immediate ATS check for instant score update
       let score = 95;
@@ -535,8 +592,8 @@ export default function CvTailoringStudio() {
         </div>
         
         <div className="flex items-center gap-3 self-end sm:self-auto shrink-0 select-none">
-          {/* Editor/Preview Mode Toggle */}
-          <div className="bg-zinc-900 border border-zinc-800 p-1 rounded-xl flex gap-1 text-[11px] font-bold">
+          {/* Editor/Preview Toggle */}
+          <div className="bg-zinc-900 border border-zinc-805 p-1 rounded-xl flex gap-1 text-[11px] font-bold">
             <button 
               onClick={() => setEditMode(true)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${editMode ? 'bg-violet-500 text-black font-bold shadow-md shadow-violet-500/10' : 'text-zinc-400 hover:text-zinc-200'}`}
@@ -610,7 +667,7 @@ export default function CvTailoringStudio() {
         </div>
       </div>
 
-      {/* 2. Dismissible Information Banner */}
+      {/* 2. Dismissible Guidance Banner */}
       {showInfoBanner && (
         <Card className="flex items-start gap-4 p-4 border-violet-500/10 bg-violet-500/5 animate-fade-in relative" glass={false}>
           <div className="p-2 bg-violet-500/10 rounded-xl text-violet-400 border border-violet-500/15 shrink-0 select-none">
@@ -618,8 +675,8 @@ export default function CvTailoringStudio() {
           </div>
           <div className="flex-1 pr-8">
             <h4 className="font-extrabold text-xs text-zinc-150 mb-0.5">Tailoring Studio Guidance</h4>
-            <div className="font-normal font-sans text-zinc-400 leading-normal">
-              <MarkdownRenderer text="This space stores your **Master CV** in markdown format. You can manually adjust details in the **Editor** or select an application below to **Auto-Tailor CV with AI** to perfectly match target keywords and STAR experiences. Switch to **Preview** to review fully rendered headings!" />
+            <div className="font-normal font-sans text-zinc-400 leading-normal text-xs">
+              <MarkdownRenderer text="This space stores your **Master CV** in markdown format. You can manually adjust details in the **Editor** or select an application below to **Auto-Tailor CV with AI** using GPT-5 models to perfectly match target keywords and STAR experiences. Experience gaps will be analyzed and surfaced." />
             </div>
           </div>
           <button 
@@ -642,7 +699,7 @@ export default function CvTailoringStudio() {
               </div>
               <div>
                 <h4 className="font-bold text-xs text-zinc-200 flex items-center gap-2">
-                  <span>AI Resume Tailoring Engine</span>
+                  <span>AI Resume Tailoring Engine (GPT-5 Mode)</span>
                   {selectedAppId && selectedAppId !== 'custom' && (
                     applications.find(app => app.id === selectedAppId)?.tailoredCv ? (
                       <Badge variant="success" glow={true} className="text-[9px] py-0 px-2">Tailored CV Active</Badge>
@@ -715,7 +772,7 @@ export default function CvTailoringStudio() {
       ) : error ? (
         <Card className="border-rose-500/20 bg-rose-500/5 text-rose-455 p-6 max-w-xl mx-auto flex items-center gap-3" glass={false}>
           <AlertTriangle className="w-5 h-5 shrink-0" />
-          <span>Failed to load master CV: {error}</span>
+          <span>Failed to load CV tailoring: {error}</span>
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch flex-1 min-h-[500px]">
@@ -723,7 +780,6 @@ export default function CvTailoringStudio() {
           {/* Left Panel: Markdown Content Workspace */}
           <div className="lg:col-span-2 flex flex-col h-full">
             {uploading || tailoringCv ? (
-              /* High-fidelity Import & Tailoring Progress Panel */
               <div className="w-full flex-grow border border-dashed border-zinc-850 bg-zinc-950/40 rounded-2xl p-10 flex flex-col items-center justify-center gap-6 shadow-xl min-h-[480px] h-full select-none animate-fade-in">
                 <div className="bg-zinc-900 p-4 rounded-full border border-zinc-800 text-violet-400 animate-pulse shadow-inner">
                   <Loader2 className="w-8 h-8 animate-spin" />
@@ -743,7 +799,7 @@ export default function CvTailoringStudio() {
                   </div>
                   <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden border border-zinc-850">
                     <div 
-                      className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all duration-350"
+                      className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all duration-355"
                       style={{ width: `${uploadProgress}%` }}
                     />
                   </div>
@@ -753,14 +809,8 @@ export default function CvTailoringStudio() {
               <textarea 
                 value={cvMarkdown}
                 onChange={(e) => setCvMarkdown(e.target.value)}
-                placeholder="# Your Full Name
-Target position, contact information...
-
-### Professional Experience
-* **Role** at **Company** (Date - Present)
-  - Core accomplishments...
-" 
-                className="w-full flex-grow bg-zinc-900/40 border border-zinc-855 rounded-2xl p-6 text-xs font-mono text-zinc-200 placeholder:text-zinc-700 focus:outline-none focus:border-violet-500/40 transition-all resize-none leading-relaxed shadow-xl min-h-[480px] h-full"
+                placeholder="# Your Full Name\nTarget position, contact information...\n\n### Professional Experience\n* **Role** at **Company** (Date - Present)\n  - Core accomplishments...\n" 
+                className="w-full flex-grow bg-zinc-900/40 border border-zinc-850 rounded-2xl p-6 text-xs font-mono text-zinc-200 placeholder:text-zinc-700 focus:outline-none focus:border-violet-500/40 transition-all resize-none leading-relaxed shadow-xl min-h-[480px] h-full"
               />
             ) : (
               <Card className="w-full flex-grow p-6 overflow-y-auto min-h-[480px] h-full bg-zinc-900/20" glass={true}>
@@ -769,10 +819,10 @@ Target position, contact information...
             )}
           </div>
 
-          {/* Right Panel: Live ATS Compliance & Warnings Dashboard */}
+          {/* Right Panel: Live ATS & Gaps suggestions checklist */}
           <div className="flex flex-col gap-6 h-full select-none">
             
-            {/* Seamless Apply Action Panel */}
+            {/* Apply Action Panel */}
             {selectedAppId && selectedAppId !== 'custom' && cvMarkdown && (
               <Card className="p-5 border-violet-500/20 bg-gradient-to-br from-violet-500/10 to-transparent flex flex-col gap-4 animate-fade-in" glass={true}>
                 <div className="flex items-center gap-2.5">
@@ -824,7 +874,6 @@ Target position, contact information...
                   </button>
                 </div>
 
-                {/* Main Apply Button */}
                 {(() => {
                   const selectedApp = applications.find(app => app.id === selectedAppId);
                   if (!selectedApp) return null;
@@ -851,7 +900,7 @@ Target position, contact information...
                         <Button
                           variant="secondary"
                           size="sm"
-                          className="w-full font-bold py-2 rounded-xl border border-zinc-800"
+                          className="w-full font-bold py-2 rounded-xl border border-zinc-850"
                           onClick={async () => {
                             try {
                               const res = await fetch(`/api/applications/${selectedAppId}`, {
@@ -865,15 +914,11 @@ Target position, contact information...
                               const json = await res.json();
                               if (!json.success) throw new Error(json.error);
 
-                              // Sync state
                               setApplications(prev => prev.map(app => 
                                 app.id === selectedAppId ? { ...app, status: 'Applied', appliedDate: new Date().toISOString() } : app
                               ));
 
-                              toast.success("Marked as Applied! 🚀", {
-                                description: "Status updated in database and synchronized with your Kanban pipeline.",
-                                duration: 5000
-                              });
+                              toast.success("Marked as Applied! 🚀");
                             } catch (e: any) {
                               toast.error("Failed to mark as applied", { description: e.message });
                             }
@@ -893,6 +938,43 @@ Target position, contact information...
               </Card>
             )}
 
+            {/* AI Experience Gaps Suggestions side panel (New Fitur) */}
+            {suggestedAdditions.length > 0 && (
+              <Card className="p-4 border-amber-500/20 bg-amber-500/5 flex flex-col gap-3.5 animate-fade-in select-none" glass={false}>
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-amber-500/10 rounded-lg text-amber-400 border border-amber-500/15">
+                    <Sparkles className="w-3.5 h-3.5" />
+                  </div>
+                  <h4 className="font-extrabold text-[10px] uppercase text-zinc-200 tracking-wider">
+                    Experience Gaps AI Suggestions
+                  </h4>
+                </div>
+                <div className="max-h-52 overflow-y-auto pr-1 space-y-3.5 scrollbar-thin scrollbar-thumb-zinc-850">
+                  {suggestedAdditions.map((addition, aIdx) => (
+                    <div key={aIdx} className="space-y-1.5 text-xs">
+                      <div className="flex items-center gap-1.5 text-amber-400 font-extrabold text-[10.5px]">
+                        <ChevronRight className="w-3.5 h-3.5 shrink-0" />
+                        <span>Gap: {addition.gap}</span>
+                      </div>
+                      <div className="bg-zinc-950/60 p-2.5 border border-zinc-900 rounded-lg text-[10.5px] text-zinc-400 relative group leading-normal leading-relaxed">
+                        <p>{addition.recommendation}</p>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(addition.recommendation);
+                            toast.success('Recommendation copied to clipboard!');
+                          }}
+                          className="absolute bottom-2 right-2 p-1.5 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-500 hover:text-zinc-200 rounded-md opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer flex items-center justify-center"
+                          title="Copy Draft"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
             {/* ATS Score display */}
             <Card className={`p-5 flex flex-col gap-4 border ${atsPassed ? 'border-emerald-500/10 bg-emerald-500/5' : 'border-rose-500/10 bg-rose-500/5'}`} glass={false}>
               <div className="flex items-center justify-between">
@@ -900,29 +982,28 @@ Target position, contact information...
                   <div className={`p-2 rounded-xl border ${
                     atsPassed 
                       ? 'bg-emerald-500/10 border-emerald-500/15 text-emerald-400' 
-                      : 'bg-rose-500/10 border-rose-500/15 text-rose-455'
+                      : 'bg-rose-500/10 border-rose-500/15 text-rose-450'
                   }`}>
                     <Sparkles className="w-4 h-4 animate-float" />
                   </div>
                   <h3 className="font-extrabold text-[10px] uppercase text-zinc-300 tracking-wider">Live ATS Compliance</h3>
                 </div>
                 {checkingAts && (
-                  <RefreshCw className="w-3.5 h-3.5 text-zinc-500 animate-spin shrink-0" />
+                  <RefreshCw className="w-3.5 h-3.5 text-zinc-550 animate-spin shrink-0" />
                 )}
               </div>
 
               <div className="flex items-baseline gap-1.5">
-                <span className={`text-5xl font-extrabold font-mono tracking-tight ${atsPassed ? 'text-emerald-400' : 'text-rose-455'}`}>
+                <span className={`text-5xl font-extrabold font-mono tracking-tight ${atsPassed ? 'text-emerald-400' : 'text-rose-450'}`}>
                   {atsScore}
                 </span>
-                <span className="text-xs text-zinc-500 font-bold">/100</span>
+                <span className="text-xs text-zinc-550 font-bold">/100</span>
               </div>
 
               <p className="text-[10.5px] text-zinc-400 leading-relaxed font-normal">
                 Calculated by validating structural keyword triggers, anchor headers, contact sections, and semantic density. Safe limits require a score above 70.
               </p>
 
-              {/* Progress Compliance Bar */}
               <div className="w-full bg-zinc-950 rounded-full h-2 overflow-hidden border border-zinc-850/80 mt-1">
                 <div 
                   className={`h-full rounded-full transition-all duration-500 ${atsPassed ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-gradient-to-r from-rose-500 to-red-500'}`}

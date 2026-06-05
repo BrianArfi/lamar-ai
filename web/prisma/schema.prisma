@@ -17,12 +17,12 @@ model User {
   salaryTarget       String         @default("{\"min\": 0, \"max\": 0, \"currency\": \"USD\"}")
   targetRoles        String?        // JSON array of target role strings or plain text list
   onboardingComplete Boolean        @default(false)
+  syncToken          String?        @unique
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
   resumes            Resume[]
   applications       Application[]
   storyBank          Story[]
-  jobMatches         UserJobMatch[]
 }
 
 model Resume {
@@ -46,6 +46,8 @@ model Application {
   status           String          @default("Evaluated")
   fitScore         Float
   jobUrl           String?
+  location         String?
+  workSetting      String?         @default("Onsite") // "Remote" | "Hybrid" | "Onsite"
   hasPdf           Boolean         @default(false)
   notes            String?
   appliedDate      DateTime?
@@ -84,42 +86,3 @@ model Story {
   updatedAt     DateTime @updatedAt
 }
 
-model ScrapedJob {
-  id          String         @id @default(uuid())
-  platform    String         // "Indeed" | "Glints" | "Kalibrr" | "JobStreet"
-  externalId  String         @unique
-  title       String
-  company     String
-  location    String?
-  description String
-  url         String
-  isActive    Boolean        @default(true)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  matches     UserJobMatch[]
-}
-
-model UserJobMatch {
-  id           String     @id @default(uuid())
-  userId       String
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  scrapedJobId String
-  job          ScrapedJob @relation(fields: [scrapedJobId], references: [id], onDelete: Cascade)
-  fitScore     Float
-  reportText   String?
-  createdAt    DateTime   @default(now())
-
-  @@unique([userId, scrapedJobId])
-}
-
-model ScraperFailureReport {
-  id           String   @id @default(uuid())
-  url          String
-  host         String   // e.g. "recruitment.peruri.co.id", "indeed.com"
-  platform     String?  // e.g. "Indeed", "Glints", "Custom Portal"
-  source       String   // "SERVER_SIDE" | "CHROME_EXTENSION"
-  failureType  String   // e.g. "SKELETON_DETECTED", "ANTI_BOT_BLOCKED", "SELECTOR_MISSING", "NETWORK_ERROR"
-  errorMessage String
-  htmlSnippet  String?  // Potongan struktur HTML atau DOM selector yang gagal diekstrak
-  createdAt    DateTime @default(now())
-}

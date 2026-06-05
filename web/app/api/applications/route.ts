@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     }
 
     const userId = sessionCookie.value;
-    const { companyName, roleTitle, status, fitScore, jobUrl, notes } = await request.json();
+    const { companyName, roleTitle, status, fitScore, jobUrl, notes, location, workSetting } = await request.json();
 
     if (!companyName || !roleTitle || fitScore === undefined) {
       return NextResponse.json({ success: false, error: 'Company Name, Role Title, and Fit Score are required.' }, { status: 400 });
@@ -50,7 +50,9 @@ export async function POST(request: Request) {
         status: status || 'Evaluated',
         fitScore: parseFloat(fitScore),
         jobUrl,
-        notes
+        notes,
+        location,
+        workSetting: workSetting || 'Onsite'
       }
     });
 

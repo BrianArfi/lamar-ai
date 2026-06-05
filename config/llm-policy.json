@@ -2,28 +2,28 @@
   "comment": "Career-Ops SaaS Token Cost Optimization & Tiered Model Routing Configuration",
   "routing": {
     "quickScore": {
-      "model": "gpt-4o-mini",
+      "model": "gpt-5.4-nano",
       "description": "Ultra-low cost structured scoring for initial A-F grading (A-F fit assessment). Done automatically in batches or on scan clicks.",
       "temperature": 0.2,
       "maxOutputTokens": 1024,
       "useStructuredOutput": true
     },
     "deepEvaluation": {
-      "model": "gpt-4o",
+      "model": "gpt-5.4-mini",
       "description": "Thorough gap analysis, company research, and target-level breakdown.",
       "temperature": 0.4,
       "maxOutputTokens": 4096,
       "useStructuredOutput": false
     },
     "resumeTailoring": {
-      "model": "gpt-4o",
+      "model": "gpt-5.4-mini",
       "description": "Premium CV adjustments to ensure professional tone matching and keyword optimization.",
       "temperature": 0.5,
       "maxOutputTokens": 4096,
       "useStructuredOutput": false
     },
     "storyMatching": {
-      "model": "gpt-4o-mini",
+      "model": "gpt-5.4-nano",
       "description": "Matching past accomplishments from the Story Bank to target JDs.",
       "temperature": 0.3,
       "maxOutputTokens": 2048,

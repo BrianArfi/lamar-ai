@@ -7,7 +7,7 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const { status, notes, fitScore, appliedDate, tailoredCv, tailoredCvSkills, tailoredAtsScore } = await request.json();
+    const { status, notes, fitScore, appliedDate, tailoredCv, tailoredCvSkills, tailoredAtsScore, location, workSetting } = await request.json();
 
     const updatedData: any = {};
     if (status !== undefined) updatedData.status = status;
@@ -17,6 +17,8 @@ export async function PUT(
     if (tailoredCv !== undefined) updatedData.tailoredCv = tailoredCv;
     if (tailoredCvSkills !== undefined) updatedData.tailoredCvSkills = tailoredCvSkills;
     if (tailoredAtsScore !== undefined) updatedData.tailoredAtsScore = tailoredAtsScore !== null ? parseInt(tailoredAtsScore) : null;
+    if (location !== undefined) updatedData.location = location;
+    if (workSetting !== undefined) updatedData.workSetting = workSetting;
 
     const application = await prisma.application.update({
       where: { id },

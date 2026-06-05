@@ -549,8 +549,8 @@ export default function PremiumLandingPage() {
               color: "border-rose-500/10 bg-rose-500/5 text-rose-455"
             },
             {
-              title: "Client-Side Decoy Scraping",
-              desc: "Job boards (LinkedIn, Glints) utilize Cloudflare anti-bot security that blocks standard scrapers. Our local Chrome extension acts like a human browser user, importing lists silently and bypassing CAPTCHAs safely.",
+              title: "Chrome Extension Co-Pilot",
+              desc: "Import job descriptions directly from LinkedIn, Glints, and Kalibrr. The co-pilot scrapes active tabs locally, completely bypassing Cloudflare anti-bot blocks and server-side connection gates.",
               icon: Globe,
               color: "border-cyan-500/10 bg-cyan-500/5 text-cyan-400"
             },
@@ -719,8 +719,8 @@ export default function PremiumLandingPage() {
               icon: Target
             },
             {
-              title: "Anti-Scraping Decoy Sync",
-              desc: "Bypass anti-bot firewalls on recruitment portals by acting as a native chrome user with our responsive client extension sync.",
+              title: "AI Job Form Auto-Filler",
+              desc: "Tired of manual application forms? Let our Chrome Extension co-pilot automatically map input fields and write tailored answers using your resume directly on the page.",
               icon: Globe
             },
             {

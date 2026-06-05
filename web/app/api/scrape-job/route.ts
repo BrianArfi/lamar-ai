@@ -44,23 +44,8 @@ export async function POST(request: Request) {
                            url.includes('indeed.com') ? 'Indeed' : 
                            url.includes('jobstreet') ? 'JobStreet' : 'This job board';
       
-      // Automatically log Scraper Failure Report
-      let host = 'unknown';
-      try { host = new URL(url).host; } catch { host = url; }
-      try {
-        await prisma.scraperFailureReport.create({
-          data: {
-            url,
-            host,
-            platform: platformName,
-            source: 'SERVER_SIDE',
-            failureType: 'ANTI_BOT_BLOCKED',
-            errorMessage: `${platformName} returned status ${response.status} (Cloudflare/Datadome block).`
-          }
-        });
-      } catch (dbErr) {
-        console.error('Failed to log failure report:', dbErr);
-      }
+      // Scraper Failure Report logging removed since table was dropped
+      console.warn(`Logging failure report bypassed for URL: ${url}`);
       
       return NextResponse.json({
         success: false,
@@ -172,27 +157,8 @@ export async function POST(request: Request) {
     if (isSkeleton && !url.includes('greenhouse.io') && !url.includes('lever.co')) {
       console.warn(`[Scraper Alert] Skeleton content detected for URL: ${url}`);
       
-      // Automatically log Scraper Failure Report
-      let host = 'unknown';
-      try { host = new URL(url).host; } catch { host = url; }
-      try {
-        await prisma.scraperFailureReport.create({
-          data: {
-            url,
-            host,
-            platform: url.includes('glints.com') ? 'Glints' : 
-                      url.includes('indeed.com') ? 'Indeed' : 
-                      url.includes('jobstreet') ? 'JobStreet' : 
-                      url.includes('kalibrr.com') ? 'Kalibrr' : 'Custom Job Board',
-            source: 'SERVER_SIDE',
-            failureType: 'SKELETON_DETECTED',
-            errorMessage: 'SPA or Client-Side Rendered layout scraped without job description. Text content was too short or did not contain keywords.',
-            htmlSnippet: description.slice(0, 1000)
-          }
-        });
-      } catch (dbErr) {
-        console.error('Failed to log failure report:', dbErr);
-      }
+      // Scraper Failure Report logging removed since table was dropped
+      console.warn(`Logging skeleton failure report bypassed for URL: ${url}`);
 
       return NextResponse.json({
         success: false,

@@ -14,9 +14,12 @@
       --success: #10b981;
       --warning: #f59e0b;
       --danger: #ef4444;
+      --zinc-800: #27272a;
+      --zinc-900: #18181b;
+      --zinc-950: #09090b;
     }
     body {
-      width: 320px;
+      width: 330px;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background-color: var(--bg-dark);
       color: var(--text-main);
@@ -24,20 +27,89 @@
       padding: 16px;
       box-sizing: border-box;
     }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
     h2 {
-      font-size: 18px;
-      font-weight: 700;
-      margin-top: 0;
-      margin-bottom: 4px;
+      font-size: 16px;
+      font-weight: 800;
+      margin: 0;
       background: linear-gradient(135deg, #c084fc, #8b5cf6);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
-    .subtitle {
-      font-size: 11px;
+    .settings-icon {
+      cursor: pointer;
       color: var(--text-muted);
-      margin-bottom: 16px;
     }
+    .settings-icon:hover {
+      color: var(--text-main);
+    }
+
+    /* Tabs Styling */
+    .tabs-bar {
+      display: flex;
+      background-color: var(--zinc-950);
+      border: 1px solid var(--border);
+      padding: 2px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .tab-btn {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px 0;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    /* Settings section */
+    #settingsPanel {
+      display: none;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      font-size: 11px;
+    }
+    #settingsPanel label {
+      font-weight: 700;
+      color: var(--text-muted);
+      display: block;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+    #settingsPanel input {
+      width: 100%;
+      background-color: var(--zinc-950);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      color: var(--text-main);
+      box-sizing: border-box;
+      font-family: monospace;
+      margin-bottom: 8px;
+    }
+    #settingsPanel button {
+      padding: 6px 12px;
+      font-size: 11px;
+    }
+
     .card {
       background-color: var(--bg-card);
       border: 1px solid var(--border);
@@ -46,127 +118,214 @@
       margin-bottom: 12px;
     }
     .job-title {
-      font-size: 14px;
-      font-weight: 600;
+      font-size: 13px;
+      font-weight: 700;
       margin-bottom: 4px;
+      color: var(--text-main);
     }
     .company {
-      font-size: 12px;
+      font-size: 11.5px;
       color: var(--text-muted);
+      margin-bottom: 8px;
     }
-    button {
+    .description-preview {
+      font-size: 11px;
+      color: #a1a1aa;
+      line-height: 1.4;
+      max-height: 60px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+    }
+
+    /* Input/Select design */
+    select {
+      width: 100%;
+      background-color: var(--zinc-950);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+
+    button.primary-btn {
       width: 100%;
       background-color: var(--primary);
       color: white;
       border: none;
       border-radius: 6px;
-      padding: 10px 14px;
-      font-size: 13px;
-      font-weight: 600;
+      padding: 9px 12px;
+      font-size: 12px;
+      font-weight: 700;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
       transition: background-color 0.2s;
     }
-    button:hover {
+    button.primary-btn:hover {
       background-color: var(--primary-hover);
     }
-    button:disabled {
+    button.primary-btn:disabled {
       background-color: var(--border);
       color: var(--text-muted);
       cursor: not-allowed;
     }
-    .result-container {
-      display: none;
-      margin-top: 12px;
-    }
-    .score-badge {
-      display: inline-block;
-      font-size: 24px;
-      font-weight: 800;
-      padding: 6px 12px;
+
+    button.secondary-btn {
+      width: 100%;
+      background-color: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-main);
       border-radius: 6px;
-      background-color: #2e1065;
-      border: 1px solid #4c1d95;
-      color: #ddd6fe;
-      text-align: center;
-      margin-right: 12px;
-    }
-    .fit-meta {
-      display: flex;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-    .fit-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-muted);
-    }
-    .fit-desc {
+      padding: 8px 12px;
       font-size: 12px;
-      line-height: 1.4;
-      color: var(--text-muted);
-      margin-bottom: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 8px;
+      transition: all 0.2s;
     }
-    .status-msg {
-      font-size: 12px;
-      margin-top: 8px;
-      text-align: center;
-      color: var(--text-muted);
+    button.secondary-btn:hover {
+      background-color: var(--bg-card);
+      border-color: var(--text-muted);
     }
+
     .badge {
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 900;
       background-color: #5b21b6;
       border: 1px solid #7c3aed;
       color: #ddd6fe;
-      padding: 2px 6px;
+      padding: 1.5px 5px;
       border-radius: 4px;
       text-transform: uppercase;
       display: inline-block;
+      margin-bottom: 8px;
+    }
+    .status-msg {
+      font-size: 11px;
+      margin-top: 8px;
+      text-align: center;
+      color: var(--text-muted);
+      line-height: 1.3;
+    }
+    .error-msg {
+      color: var(--danger);
+      font-weight: 600;
+    }
+
+    /* Detected Fields visual list */
+    .fields-list {
+      font-size: 11px;
+      max-height: 100px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px;
+      background-color: var(--zinc-950);
+      margin-bottom: 10px;
+      display: none;
+    }
+    .field-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 3px 0;
+      border-bottom: 1px solid #1f1f23;
+    }
+    .field-item:last-child {
+      border-bottom: none;
+    }
+    .field-label {
+      font-weight: 650;
+      color: var(--text-main);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 180px;
+    }
+    .field-type {
+      color: var(--text-muted);
+      font-size: 9px;
+      text-transform: uppercase;
     }
   </style>
 </head>
 <body>
-  <h2>Career-Ops AI Matcher</h2>
-  <div class="subtitle">Extract JDs & pre-evaluate matching scores instantly.</div>
+  <header>
+    <h2>Career-Ops AI Co-Pilot</h2>
+    <div class="settings-icon" id="toggleSettings" title="Extension Settings">⚙️</div>
+  </header>
 
-  <div class="card" id="customPortalCard" style="display: none; background-color: #2e1065; border-color: #4c1d95; padding: 12px; margin-bottom: 12px;">
-    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-      <span class="badge">Custom Portal</span>
-      <span style="font-size: 11px; font-weight: bold; color: #ddd6fe;">Universal Scraper Active</span>
-    </div>
-    <div style="font-size: 11px; color: #a1a1aa; line-height: 1.4;">
-      This site has not been officially optimized yet. You can still scan it, or request official optimization below:
-    </div>
-    <div style="margin-top: 8px; text-align: right;">
-      <button id="btnRequestOpt" style="width: auto; font-size: 10px; padding: 4px 10px; background-color: var(--primary); border-radius: 4px; display: inline-block;">Request Official Optimization</button>
-    </div>
+  <!-- Sync Token Panel -->
+  <div id="settingsPanel">
+    <label for="syncToken">Sync Token Key</label>
+    <input type="password" id="syncToken" placeholder="Paste your token from dashboard..." />
+    
+    <label for="baseUrl">SaaS Base URL</label>
+    <input type="text" id="baseUrl" value="http://localhost:3000" />
+    
+    <button class="primary-btn" id="btnSaveSettings">Save Settings</button>
   </div>
 
-  <div class="card" id="jobCard">
-    <div class="job-title" id="lblTitle">Detecting Active Page...</div>
-    <div class="company" id="lblCompany">Please navigate to a supported job portal.</div>
+  <!-- Tabs Navigation -->
+  <div class="tabs-bar">
+    <button class="tab-btn active" id="tabScrape">Scrape Job</button>
+    <button class="tab-btn" id="tabAutofill">Auto-fill Form</button>
   </div>
 
-  <button id="btnEvaluate" disabled>Analyze Match & Customize CV</button>
+  <!-- TAB CONTENT 1: Scrape Job -->
+  <div id="scrapeTabContent">
+    <div class="card" id="customPortalCard" style="display: none; background-color: #2e1065; border-color: #4c1d95;">
+      <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+        <span class="badge" style="background-color: #7c3aed;">Universal Mode</span>
+        <span style="font-size: 10px; font-weight: bold; color: #ddd6fe;">Smart Selector Scanner Active</span>
+      </div>
+      <p style="font-size: 10px; color: #a1a1aa; line-height: 1.4; margin: 0;">
+        This board is scanned using fallback elements density scoring. Verify detected contents below:
+      </p>
+    </div>
 
-  <div class="status-msg" id="statusMsg"></div>
+    <div class="card" id="jobCard">
+      <div class="job-title" id="lblTitle">Detecting Active Page...</div>
+      <div class="company" id="lblCompany">Please navigate to a supported job listing page.</div>
+      <div class="description-preview" id="lblDescPreview"></div>
+    </div>
 
-  <div class="result-container" id="resultContainer">
+    <button class="primary-btn" id="btnScrapeAndTrack" disabled>
+      🚀 Tailor CV & Track This Job
+    </button>
+  </div>
+
+  <!-- TAB CONTENT 2: Auto-fill Form -->
+  <div id="autofillTabContent" style="display: none;">
     <div class="card">
-      <div class="fit-meta">
-        <div class="score-badge" id="lblScore">A-</div>
-        <div>
-          <div class="fit-label">Match Assessment</div>
-          <div style="font-size: 14px; font-weight: 600;" id="lblSummary">Strong Fit (4.3/5)</div>
-        </div>
-      </div>
-      <div class="fit-desc" id="lblGap">
-        Key Gap: Lacks direct Kubernetes infrastructure ownership. Resume adjustments suggested.
-      </div>
-      <button style="background-color: var(--success);" id="btnSaaS">Open in SaaS Dashboard</button>
+      <p style="font-size: 11px; color: var(--text-muted); margin-top: 0; margin-bottom: 10px; line-height: 1.4;">
+        AI scans form input textareas and maps contact, experience, and custom essay fields using your resume.
+      </p>
+
+      <label style="font-[10px] font-bold uppercase tracking-wider text-zinc-550 block mb-1">Select Profile Resume</label>
+      <select id="cvSelect">
+        <option value="">-- Loading CVs from SaaS... --</option>
+      </select>
+
+      <button class="secondary-btn" id="btnDetectFields">🔍 Scan Page Form Fields</button>
+      
+      <!-- Detected Fields List -->
+      <div class="fields-list" id="fieldsListContainer"></div>
+
+      <button class="primary-btn" id="btnAutofill" disabled>
+        🤖 Auto-fill Application
+      </button>
     </div>
   </div>
+
+  <div class="status-msg" id="statusMsg">Please enter Sync Token in settings to connect with your Career-Ops dashboard.</div>
 
   <script src="popup.js"></script>
 </body>

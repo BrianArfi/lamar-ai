@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Career-Ops AI Job Matcher & Scraper",
-  "version": "1.0.0",
-  "description": "Extract job descriptions instantly and evaluate compatibility with Career-Ops SaaS, bypassing cloud anti-bot blocks safely.",
+  "version": "1.1.0",
+  "description": "Extract job listings and auto-fill application forms instantly using Career-Ops Sync Token.",
   "permissions": [
     "activeTab",
     "storage"
@@ -10,12 +10,17 @@
   "host_permissions": [
     "*://*.linkedin.com/*",
     "*://*.indeed.com/*",
+    "*://id.indeed.com/*",
+    "*://*.indeed.co.id/*",
     "*://*.glints.com/*",
     "*://*.jobstreet.co.id/*",
     "*://*.jobstreet.com/*",
     "*://*.kalibrr.com/*",
     "*://*.greenhouse.io/*",
-    "*://*.lever.co/*"
+    "*://*.lever.co/*",
+    "*://*.techinasia.com/*",
+    "*://*.karir.com/*",
+    "*://*.loker.id/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -30,12 +35,17 @@
       "matches": [
         "*://*.linkedin.com/*",
         "*://*.indeed.com/*",
+        "*://id.indeed.com/*",
+        "*://*.indeed.co.id/*",
         "*://*.glints.com/*",
         "*://*.jobstreet.co.id/*",
         "*://*.jobstreet.com/*",
         "*://*.kalibrr.com/*",
         "*://*.greenhouse.io/*",
-        "*://*.lever.co/*"
+        "*://*.lever.co/*",
+        "*://*.techinasia.com/*",
+        "*://*.karir.com/*",
+        "*://*.loker.id/*"
       ],
       "js": ["content.js"]
     }

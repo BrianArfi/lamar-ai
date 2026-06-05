@@ -30,43 +30,50 @@ export async function POST(request: Request) {
 Your task is to take a candidate's current master CV in Markdown format, and customize/tailor it to perfectly match a target job position:
 - Role Title: "${roleTitle}"
 - Company Name: "${companyName || 'Unknown Company'}"
-- Job Description / Requirements context: "${jobDescription || 'Not provided'}"
+- Job Description context: "${jobDescription || 'Not provided'}"
 
 Instructions:
-1. Maintain absolute truthfulness. Do NOT invent new degrees, certifications, or work experience that the candidate does not have.
+1. Maintain absolute truthfulness. Do NOT invent new degrees, certifications, or roles that the candidate does not have.
 2. Highlight and emphasize the candidate's existing experience, tools, and technical accomplishments that directly align with the target job requirements.
 3. Incorporate relevant keywords and key technical methodologies naturally into the bullet points.
-4. Clean up structural metrics, converting key accomplishments into quantitative outcome metrics (e.g. SITUATION/TASK/ACTION/RESULT - STAR method) where possible.
-5. Ensure the tailored resume maintains standard ATS-compliant markdown heading sections (using level-3 headers):
-   - "### Professional Experience" (or "### Experience")
-   - "### Education"
-   - "### Skills" (or "### Technical Skills")
-   - "### Projects" (or "### Key Projects", if candidate has projects listed)
-6. Output ONLY the tailored Markdown CV. Do NOT include conversational prefaces, concluding notes, or markdown backticks wraps (\`\`\`markdown or \`\`\`).
+4. ATS Gap Analysis: Identify critical requirements or tools in the job description that are completely absent in the candidate's CV.
+   - For each gap, generate a tailored bullet point recommendation showing how they can describe related transferrable experience, personal research projects, or self-taught skills to address it.
+
+You must respond with a clean, raw JSON object (with no markdown code block backticks, just plain text) with the following structure:
+{
+  "cvMarkdown": "The tailored Markdown CV content",
+  "suggestedAdditions": [
+    {
+      "gap": "The required tool or experience (e.g. 'Kubernetes clustering experience')",
+      "recommendation": "Drafted bullet point. E.g. 'Engineered a personal homelab Kubernetes cluster to test microservices orchestration and container network interfaces, simulating production high availability workflows.'"
+    }
+  ]
+}
 `;
 
     const response = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      model: 'gpt-5.4-mini',
       temperature: 0.3,
-      max_tokens: 4096,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `CANDIDATE CURRENT MASTER CV:\n\n${cvMarkdown}` }
       ]
     });
 
-    const tailoredMarkdown = response.choices[0].message?.content?.trim() || '';
+    const responseText = response.choices[0].message?.content?.trim() || '';
 
-    // Strip markdown wrappers if any leaked
-    const cleanMarkdown = tailoredMarkdown
-      .replace(/^```markdown\s*/i, '')
-      .replace(/^```\s*/i, '')
+    // Strip markdown formatting if any leaked
+    const cleanJson = responseText
+      .replace(/^```json\s*/i, '')
       .replace(/```$/, '')
       .trim();
 
+    const parsedData = JSON.parse(cleanJson);
+
     return NextResponse.json({
       success: true,
-      cvMarkdown: cleanMarkdown
+      cvMarkdown: parsedData.cvMarkdown,
+      suggestedAdditions: parsedData.suggestedAdditions || []
     });
 
   } catch (error: any) {
