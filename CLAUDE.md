@@ -282,9 +282,10 @@ Default modes are in `modes/` (English). Additional language-specific modes are 
 ## Offer Verification -- MANDATORY
 
 **NEVER trust WebSearch/WebFetch to verify if an offer is still active.** ALWAYS use Playwright:
-1. `browser_navigate` to the URL
-2. `browser_snapshot` to read content
-3. Only footer/navbar without JD = closed. Title + description + Apply = active.
+1. `browser_navigate` or script-driven navigation (e.g. `check-liveness.mjs` / Playwright) to follow redirects to the final target URL.
+2. Always resolve and present the **exact direct job detail page URL** (e.g., specific paths matching `/jobs/...`, `/opportunities/...`, or direct company ATS boards) instead of search engine/grounding redirects, login screens, or generic marketplace homepages.
+3. Check the page content: only footer/navbar/login page or pages without job descriptions = closed/expired. Page title + full job description + visible apply buttons = active.
+4. **Strictly filter out** and do not present any job listings that have closed, expired, or been filled. If status is uncertain, verify manually or label it clearly.
 
 **Exception for batch workers (`claude -p`):** Playwright is not available in headless pipe mode. Use WebFetch as fallback and mark the report header with `**Verification:** unconfirmed (batch mode)`. The user can verify manually later.
 
