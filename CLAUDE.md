@@ -285,7 +285,11 @@ Default modes are in `modes/` (English). Additional language-specific modes are 
 1. `browser_navigate` or script-driven navigation (e.g. `check-liveness.mjs` / Playwright) to follow redirects to the final target URL.
 2. Always resolve and present the **exact direct job detail page URL** (e.g., specific paths matching `/jobs/...`, `/opportunities/...`, or direct company ATS boards) instead of search engine/grounding redirects, login screens, or generic marketplace homepages.
 3. Check the page content: only footer/navbar/login page or pages without job descriptions = closed/expired. Page title + full job description + visible apply buttons = active.
-4. **Strictly filter out** and do not present any job listings that have closed, expired, or been filled. If status is uncertain, verify manually or label it clearly.
+4. **ATS Bypass Technique for AI (Workable / Teamtailor):**
+   - Many modern job boards are SPA-based and render blank content when fetched using standard non-JS HTTP requests.
+   - To bypass this, check for their AI/LLM text feeds. For Workable, check `https://apply.workable.com/{company}/llms.txt` and fetch `https://apply.workable.com/{company}/jobs.md` to get the list of direct apply links.
+   - For Teamtailor, check `https://careers.{company}.io/llms.txt` or `https://{company}.teamtailor.com/jobs.md` to read the direct links.
+5. **Strictly filter out** and do not present any job listings that have closed, expired, or been filled. If status is uncertain, verify manually or label it clearly.
 
 **Exception for batch workers (`claude -p`):** Playwright is not available in headless pipe mode. Use WebFetch as fallback and mark the report header with `**Verification:** unconfirmed (batch mode)`. The user can verify manually later.
 
