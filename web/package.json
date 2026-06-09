@@ -1,5 +1,5 @@
 {
-  "name": "web",
+  "name": "career-ops-web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,17 +9,21 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
-    "@prisma/client": "^5.22.0",
-    "dotenv": "^17.4.2",
+    "@anthropic-ai/sdk": "^0.98.0",
+    "@base-ui/react": "^1.5.0",
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.106.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "inngest": "^4.4.0",
     "lucide-react": "^1.16.0",
-    "mammoth": "^1.12.0",
     "next": "16.2.6",
-    "openai": "^6.39.0",
-    "pdf-parse": "^2.4.5",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "sonner": "^2.0.7"
+    "shadcn": "^4.8.0",
+    "tailwind-merge": "^3.6.0",
+    "tw-animate-css": "^1.4.0",
+    "xendit-node": "^7.0.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -28,7 +32,6 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
-    "prisma": "^5.22.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
