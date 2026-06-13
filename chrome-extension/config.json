@@ -1,0 +1,18 @@
+{
+  "baseUrl": "http://localhost:3000",
+  "remoteConfigUrl": "",
+  "knownPortals": [
+    "linkedin.com",
+    "indeed.com",
+    "indeed.co.id",
+    "glints.com",
+    "jobstreet.co.id",
+    "jobstreet.com",
+    "kalibrr.com",
+    "greenhouse.io",
+    "lever.co",
+    "techinasia.com",
+    "workday.com",
+    "myworkdayjobs.com"
+  ]
+}

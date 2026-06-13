@@ -3,6 +3,12 @@
  * Scrapes JDs directly from user's active browser window.
  * Bypasses Cloudflare & IP blocks by running on the user's active residential IP.
  * Includes Form Detector and AI Auto-filler execution client-side.
+ *
+ * To support a new job portal, add one entry to SITE_PARSERS below (and add the
+ * host to manifest.json + config.json knownPortals). Each of title/company/
+ * description is a list of sources tried in order — a CSS selector string or a
+ * function returning text — and the first non-empty result wins. Sites without
+ * a parser automatically fall back to the universal density scanner.
  */
 
 // Helper to wait for elements or delay actions
@@ -27,179 +33,165 @@ async function autoExpandLinkedIn() {
   }
 }
 
-async function extractJobDetails() {
-  const url = window.location.href;
-  let title = '';
-  let company = '';
-  let description = '';
-
-  if (url.includes('linkedin.com')) {
-    // Make sure we auto-expand the description first
-    await autoExpandLinkedIn();
-
-    // LinkedIn Job Page parsing - Multiple Selectors
-    const titleSelectors = [
+const SITE_PARSERS = [
+  {
+    name: 'LinkedIn',
+    match: ['linkedin.com'],
+    preExtract: autoExpandLinkedIn, // expand the description before reading it
+    title: [
       'h1.job-details-jobs-unified-top-card__job-title',
       '.jobs-unified-top-card__job-title',
       '.job-details-jobs-unified-top-card__job-title',
       'h1.t-24',
       'h1'
-    ];
-    for (const sel of titleSelectors) {
-      const el = document.querySelector(sel);
-      if (el && el.innerText.trim()) {
-        title = el.innerText.trim();
-        break;
-      }
-    }
-
-    const companySelectors = [
+    ],
+    company: [
       '.job-details-jobs-unified-top-card__company-name a',
       '.jobs-unified-top-card__company-name',
       '.job-details-jobs-unified-top-card__company-name',
       '.jobs-post-apply-header__company-name',
       '.topcard__org-name-link',
       '.job-details-jobs-unified-top-card__primary-description a'
-    ];
-    for (const sel of companySelectors) {
-      const el = document.querySelector(sel);
-      if (el && el.innerText.trim()) {
-        company = el.innerText.trim();
-        break;
-      }
-    }
-
-    const descSelectors = [
+    ],
+    description: [
       '#job-details',
       '.jobs-description__content',
       '.jobs-box__html-content',
       '.show-more-less-html__markup',
       'article.jobs-description__container'
-    ];
-    for (const sel of descSelectors) {
-      const el = document.querySelector(sel);
-      if (el && el.innerText.trim()) {
-        description = el.innerText.trim();
-        break;
+    ]
+  },
+  {
+    name: 'Glints',
+    match: ['glints.com'],
+    title: [
+      'h1[class*="JobCard__Title"]',
+      'h1[class*="OpportunityHeader__Title"]',
+      'h1[class*="OpportunityHeader__OpportunityTitle"]',
+      'h1.OpportunityHeader__Title-sc-',
+      'h1'
+    ],
+    company: [
+      'div[class*="OpportunityHeader__CompanyName"]',
+      'a[href*="/companies/"]',
+      'div[class*="OpportunityHeader__Company"]',
+      'div.OpportunityHeader__Company-sc-'
+    ],
+    description: [
+      'div[class*="OpportunityDescription__OpportunityDescriptionContainer"]',
+      'div[class*="OpportunityDescriptionContainer"]',
+      'main article',
+      '.job-description-content'
+    ]
+  },
+  {
+    name: 'Kalibrr',
+    match: ['kalibrr.com'],
+    title: ['h1.k-text-title', 'h1[itemprop="title"]', 'h1'],
+    company: ['a.k-text-primary-color', 'span[itemprop="name"] a', 'div.k-company-info a'],
+    description: ['div.k-description', 'div[itemprop="description"]']
+  },
+  {
+    name: 'JobStreet',
+    match: ['jobstreet.co.id', 'jobstreet.com'],
+    title: ['h1[data-automation="job-detail-title"]', 'h1[data-automation="title"]', 'h1'],
+    company: ['span[data-automation="advertiser-name"]', 'a[data-automation="advertiser-name"]'],
+    description: ['div[data-automation="jobDescription"]', 'div[data-automation="job-details"]']
+  },
+  {
+    name: 'Indeed',
+    match: ['indeed.com', 'indeed.co.id'],
+    title: ['h1.jobsearch-JobInfoHeader-title', 'h1[data-testid="jobsearch-JobInfoHeader-title"]', 'h1'],
+    company: [
+      'div[data-company-name="true"] a',
+      'div.jobsearch-CompanyInfoContainer a',
+      'div.jobsearch-InlineCompanyRating'
+    ],
+    description: ['div#jobDescriptionText', 'div.jobsearch-jobDescriptionText']
+  },
+  {
+    name: 'Tech in Asia',
+    match: ['techinasia.com'],
+    title: ['h1.job-post-title', 'h1[class*="title"]', 'h1'],
+    company: ['div.company-name', 'div[class*="companyName"] a', 'a[href*="/companies/"]'],
+    description: ['div.job-post-description', 'div[class*="description"]']
+  },
+  {
+    name: 'Greenhouse',
+    match: ['greenhouse.io'],
+    title: ['.app-title', 'h1'],
+    company: ['.company-name', '.company'],
+    companyTransform: text => text.replace(/^at\s+/i, ''),
+    description: ['#content', '.job-board']
+  },
+  {
+    name: 'Lever',
+    match: ['lever.co'],
+    title: ['.posting-header h2', 'h1'],
+    company: [
+      '.posting-header .company-name',
+      () => {
+        const img = document.querySelector('.logo-link img');
+        return img ? (img.alt || img.innerText || '') : '';
       }
+    ],
+    description: ['.section-wrapper .posting-sections', '.posting-content']
+  },
+  {
+    name: 'Workday',
+    match: ['workday.com', 'myworkdayjobs.com'],
+    title: ['[data-automation-id="jobPostingHeader"]', 'h1'],
+    company: [
+      '[data-automation-id="companyName"]',
+      () => document.title.split(' - ')[1] || ''
+    ],
+    description: ['[data-automation-id="jobDescriptionText"]', '.job-description']
+  }
+];
+
+/**
+ * Return the first non-empty text from a list of sources.
+ * A source is either a CSS selector string or a function returning text.
+ * Bad selectors / throwing functions are skipped so one entry can't break the scan.
+ */
+function firstText(sources) {
+  for (const source of sources || []) {
+    try {
+      if (typeof source === 'function') {
+        const value = (source() || '').trim();
+        if (value) return value;
+      } else {
+        const el = document.querySelector(source);
+        if (el) {
+          const text = (el.innerText || el.textContent || '').trim();
+          if (text) return text;
+        }
+      }
+    } catch (err) {
+      // Skip invalid selector or failing custom source, try the next one
     }
+  }
+  return '';
+}
 
-  } else if (url.includes('glints.com')) {
-    // Glints ID Parsing
-    const titleEl = document.querySelector('h1[class*="JobCard__Title"]') || 
-                    document.querySelector('h1[class*="OpportunityHeader__Title"]') ||
-                    document.querySelector('h1[class*="OpportunityHeader__OpportunityTitle"]') ||
-                    document.querySelector('h1.OpportunityHeader__Title-sc-') ||
-                    document.querySelector('h1');
-    title = titleEl ? titleEl.innerText.trim() : '';
+async function extractJobDetails() {
+  const url = window.location.href;
+  const parser = SITE_PARSERS.find(p => p.match.some(host => url.includes(host)));
 
-    const companyEl = document.querySelector('div[class*="OpportunityHeader__CompanyName"]') || 
-                      document.querySelector('a[href*="/companies/"]') ||
-                      document.querySelector('div[class*="OpportunityHeader__Company"]') ||
-                      document.querySelector('div.OpportunityHeader__Company-sc-');
-    company = companyEl ? companyEl.innerText.trim() : '';
+  let title = '';
+  let company = '';
+  let description = '';
 
-    const descEl = document.querySelector('div[class*="OpportunityDescription__OpportunityDescriptionContainer"]') ||
-                   document.querySelector('div[class*="OpportunityDescriptionContainer"]') ||
-                   document.querySelector('main article') ||
-                   document.querySelector('.job-description-content');
-    description = descEl ? descEl.innerText.trim() : '';
-
-  } else if (url.includes('kalibrr.com')) {
-    // Kalibrr ID Parsing
-    const titleEl = document.querySelector('h1.k-text-title') || 
-                    document.querySelector('h1[itemprop="title"]') ||
-                    document.querySelector('h1');
-    title = titleEl ? titleEl.innerText.trim() : '';
-
-    const companyEl = document.querySelector('a.k-text-primary-color') || 
-                      document.querySelector('span[itemprop="name"] a') ||
-                      document.querySelector('div.k-company-info a');
-    company = companyEl ? companyEl.innerText.trim() : '';
-
-    const descEl = document.querySelector('div.k-description') || 
-                   document.querySelector('div[itemprop="description"]');
-    description = descEl ? descEl.innerText.trim() : '';
-
-  } else if (url.includes('jobstreet.co.id') || url.includes('jobstreet.com')) {
-    // JobStreet ID Parsing
-    const titleEl = document.querySelector('h1[data-automation="job-detail-title"]') || 
-                    document.querySelector('h1[data-automation="title"]') ||
-                    document.querySelector('h1');
-    title = titleEl ? titleEl.innerText.trim() : '';
-
-    const companyEl = document.querySelector('span[data-automation="advertiser-name"]') || 
-                      document.querySelector('a[data-automation="advertiser-name"]');
-    company = companyEl ? companyEl.innerText.trim() : '';
-
-    const descEl = document.querySelector('div[data-automation="jobDescription"]') || 
-                   document.querySelector('div[data-automation="job-details"]');
-    description = descEl ? descEl.innerText.trim() : '';
-
-  } else if (url.includes('indeed.com') || url.includes('indeed.co.id')) {
-    // Indeed ID Parsing
-    const titleEl = document.querySelector('h1.jobsearch-JobInfoHeader-title') || 
-                    document.querySelector('h1[data-testid="jobsearch-JobInfoHeader-title"]') ||
-                    document.querySelector('h1');
-    title = titleEl ? titleEl.innerText.trim() : '';
-
-    const companyEl = document.querySelector('div[data-company-name="true"] a') || 
-                      document.querySelector('div.jobsearch-CompanyInfoContainer a') ||
-                      document.querySelector('div.jobsearch-InlineCompanyRating');
-    company = companyEl ? companyEl.innerText.trim() : '';
-
-    const descEl = document.querySelector('div#jobDescriptionText') || 
-                   document.querySelector('div.jobsearch-jobDescriptionText');
-    description = descEl ? descEl.innerText.trim() : '';
-
-  } else if (url.includes('techinasia.com')) {
-    // Tech in Asia Parsing
-    const titleEl = document.querySelector('h1.job-post-title') || 
-                    document.querySelector('h1[class*="title"]') ||
-                    document.querySelector('h1');
-    title = titleEl ? titleEl.innerText.trim() : '';
-
-    const companyEl = document.querySelector('div.company-name') || 
-                      document.querySelector('div[class*="companyName"] a') ||
-                      document.querySelector('a[href*="/companies/"]');
-    company = companyEl ? companyEl.innerText.trim() : '';
-
-    const descEl = document.querySelector('div.job-post-description') || 
-                   document.querySelector('div[class*="description"]');
-    description = descEl ? descEl.innerText.trim() : '';
-
-  } else if (url.includes('greenhouse.io')) {
-    // Greenhouse parsing
-    const titleEl = document.querySelector('.app-title') || document.querySelector('h1');
-    title = titleEl ? titleEl.innerText.trim() : '';
-
-    const companyEl = document.querySelector('.company-name') || document.querySelector('.company');
-    company = companyEl ? companyEl.innerText.trim().replace(/^at\s+/i, '') : '';
-
-    const descEl = document.querySelector('#content') || document.querySelector('.job-board');
-    description = descEl ? descEl.innerText.trim() : '';
-
-  } else if (url.includes('lever.co')) {
-    // Lever parsing
-    const titleEl = document.querySelector('.posting-header h2') || document.querySelector('h1');
-    title = titleEl ? titleEl.innerText.trim() : '';
-
-    const companyEl = document.querySelector('.posting-header .company-name') || document.querySelector('.logo-link img');
-    company = companyEl ? (companyEl.alt || companyEl.innerText || '').trim() : '';
-
-    const descEl = document.querySelector('.section-wrapper .posting-sections') || document.querySelector('.posting-content');
-    description = descEl ? descEl.innerText.trim() : '';
-
-  } else if (url.includes('workday.com')) {
-    // Workday parsing
-    const titleEl = document.querySelector('[data-automation-id="jobPostingHeader"]') || document.querySelector('h1');
-    title = titleEl ? titleEl.innerText.trim() : '';
-
-    const companyEl = document.querySelector('[data-automation-id="companyName"]') || document.title.split(' - ')[1];
-    company = companyEl ? companyEl.trim() : '';
-
-    const descEl = document.querySelector('[data-automation-id="jobDescriptionText"]') || document.querySelector('.job-description');
-    description = descEl ? descEl.innerText.trim() : '';
+  if (parser) {
+    if (parser.preExtract) {
+      try { await parser.preExtract(); } catch { /* non-fatal */ }
+    }
+    title = firstText(parser.title);
+    company = firstText(parser.company);
+    if (company && parser.companyTransform) {
+      company = parser.companyTransform(company);
+    }
+    description = firstText(parser.description);
   }
 
   // Fallback for general/unsupported sites
@@ -270,34 +262,34 @@ async function extractJobDetails() {
 function detectFormFields() {
   const fields = [];
   const inputs = document.querySelectorAll('input, textarea, select');
-  
+
   inputs.forEach(el => {
     // Visibility checks
     const style = window.getComputedStyle(el);
     if (style.display === 'none' || style.visibility === 'hidden' || el.type === 'hidden') {
       return;
     }
-    
+
     // Ignore unrelated input elements
     const type = (el.type || el.tagName.toLowerCase()).toLowerCase();
     if (['submit', 'button', 'image', 'file', 'checkbox', 'radio'].includes(type)) {
       return;
     }
-    
+
     const id = el.id || '';
     const name = el.name || '';
     const placeholder = el.placeholder || '';
     const ariaLabel = el.getAttribute('aria-label') || '';
-    
+
     // 1. Try label with matching 'for' attribute
     let label = '';
     if (id) {
-      const labelEl = document.querySelector(`label[for="${id}"]`);
+      const labelEl = document.querySelector(`label[for="${cssAttrEscape(id)}"]`);
       if (labelEl) {
         label = labelEl.innerText.trim();
       }
     }
-    
+
     // 2. Try closest parent label
     if (!label) {
       const parentLabel = el.closest('label');
@@ -305,7 +297,7 @@ function detectFormFields() {
         label = parentLabel.innerText.trim();
       }
     }
-    
+
     // 3. Look in parent containers for label tags or descriptive text
     if (!label) {
       const container = el.closest('div');
@@ -323,10 +315,10 @@ function detectFormFields() {
         }
       }
     }
-    
+
     // Clean label text
     label = label.replace(/\s+/g, ' ').replace(/[*:]/g, '').trim();
-    
+
     if (label.length > 100) {
       label = label.slice(0, 100) + '...';
     }
@@ -343,24 +335,39 @@ function detectFormFields() {
   return fields;
 }
 
+// Escape a value for safe use inside a quoted CSS attribute selector
+function cssAttrEscape(value) {
+  return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
 function fillFormFields(data) {
   let filledCount = 0;
+  if (!data || typeof data !== 'object') {
+    return { success: true, filledCount };
+  }
+
   for (const [key, value] of Object.entries(data)) {
     if (!value) continue;
-    
-    // Find input by ID or name
-    let el = document.getElementById(key) || document.querySelector(`[name="${key}"]`);
-    
-    if (!el) {
-      // Match by placeholder or aria-label
-      el = document.querySelector(`[placeholder="${key}"]`) || 
-           document.querySelector(`[aria-label="${key}"]`);
-    }
-    
-    if (!el) {
-      // Partial matching for ID or name attributes
-      el = document.querySelector(`input[id*="${key}"], textarea[id*="${key}"], select[id*="${key}"]`) ||
-           document.querySelector(`input[name*="${key}"], textarea[name*="${key}"], select[name*="${key}"]`);
+
+    const k = cssAttrEscape(key);
+    let el = document.getElementById(key);
+
+    try {
+      if (!el) {
+        el = document.querySelector(`[name="${k}"]`);
+      }
+      if (!el) {
+        // Match by placeholder or aria-label
+        el = document.querySelector(`[placeholder="${k}"]`) ||
+             document.querySelector(`[aria-label="${k}"]`);
+      }
+      if (!el) {
+        // Partial matching for ID or name attributes
+        el = document.querySelector(`input[id*="${k}"], textarea[id*="${k}"], select[id*="${k}"]`) ||
+             document.querySelector(`input[name*="${k}"], textarea[name*="${k}"], select[name*="${k}"]`);
+      }
+    } catch (err) {
+      continue; // key produced an invalid selector — skip this entry
     }
 
     if (el) {
